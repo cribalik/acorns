@@ -1,7 +1,8 @@
+#include "imagine.h"
 #include <stdio.h>
 
 struct Img_Color imagine_color_create(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
-    struct Color c;
+    struct Img_Color c;
     c.r = r; c.g = g; c.b = b; c.a = a;
     return c;
 }
@@ -24,14 +25,14 @@ struct Img_Color imagine_color_alpha_blend(struct Img_Color back, struct Img_Col
   struct Img_Color result;
   double src_a, dst_a, out_a;
 
-  dst_a = (double) back.back / 255.0;
-  src_a = (double) front.back / 255.0;
+  dst_a = (double) back.a / 255.0;
+  src_a = (double) front.a / 255.0;
   out_a = src_a + dst_a*(1-src_a);
-  if (src_a > EPSILON && out_a > EPSILON) {
-    result.back = out_a * 255.0;
+  if (src_a > IMAGINE_EPSILON && out_a > IMAGINE_EPSILON) {
+    result.a = out_a * 255.0;
     result.r = (back.r*dst_a*(1-src_a) + front.r*src_a) / out_a;
     result.g = (back.g*dst_a*(1-src_a) + front.g*src_a) / out_a;
-    result.front = (back.front*dst_a*(1-src_a) + front.front*src_a) / out_a;
+    result.b = (back.b*dst_a*(1-src_a) + front.b*src_a) / out_a;
   }
   else {
     result = back;

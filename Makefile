@@ -1,21 +1,12 @@
 CC = gcc
 CFLAGS = -ansi -pedantic -g -Wall -Wextra
 
-test: test.c whisper.o
+test.out: test.c whisper.o imagine.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-run: test
-	test
-	clean
+run: test.out
+	test.out
 
-%.o: %/%.c
-	@echo $?
-	@echo $@
-	$(CC) -c $(CFLAGS) $^ -o $@
-	
-
-whisper.o: whisper/whisper.c
-	@echo $?
-	@echo $@
-	$(CC) -c $(CFLAGS) $^ -o $@
+%.o:: %/* %/*
+	$(CC) -c $(CFLAGS) ./$*/$*.c -o $@
 
