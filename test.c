@@ -8,19 +8,19 @@ int main(int argc, const char *argv[]) {
   int read, err;
   FILE* f;
   char buffer[256];
-  Whisper_TCPReceiver receiver;
+  Whisper_TCPServer receiver;
   Whisper_TCPConnection connection;
 
   UNUSED(argc), UNUSED(argv);
 
-  err = whisper_tcp_receiver_init_ex(&receiver, 1234, 1);
+  err = whisper_tcp_server_init_ex(&receiver, 1234, 1);
   if (err) {
     perror("Couldn't initialize tcp receiver");
     return 1;
   }
 
   for (;;) {
-    err = whisper_tcp_receiver_poll(receiver, &connection);
+    err = whisper_tcp_server_poll(receiver, &connection);
     if (err) {
       sleep(1);
       continue;
@@ -30,7 +30,7 @@ int main(int argc, const char *argv[]) {
     if (!f)
       continue;
 
-    while (read != EOF) {
+    for (;;) {
       read = fread(buffer, 1, sizeof(buffer), f);
       if (read <= 0) break;
       err = whisper_tcp_connection_write(connection, buffer, read);
