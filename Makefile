@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -ansi -pedantic -g -Wall -Wextra -DDEBUG
+CFLAGS = -ansi -pedantic -g -Wall -Wextra -DDEBUG=1
 LIBRARIES = whisper.o imagine.o
 
 all: test.out test2.out

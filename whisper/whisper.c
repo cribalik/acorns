@@ -106,7 +106,7 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, short
 
 		error = connect(socket_fd, (struct sockaddr*) &address, sizeof(address));
 
-		#ifdef DEBUG
+		#if DEBUG
 			if (error) perror("Failed");
 			else printf("Success\n");
 		#endif
@@ -123,14 +123,43 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, short
 	return error;
 }
 
-int whisper_tcp_connection_write(Whisper_TCPConnection c, char* data, int size) {
+int whisper_tcp_connection_write(Whisper_TCPConnection c, const char* data, int size) {
 	if (c < 0) return c;
 	return write(c, data, size);
 }
 
-int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int size) {
+int whisper_tcp_connection_send(Whisper_TCPConnection c, const char* data, int num_bytes) {
+	int num_read;
+	const char* p;
 	if (c < 0) return c;
-	return read(c, out, size);
+	p = data;
+	for (;;) {
+		num_read = write(c, p, data + num_bytes - p);
+		if (num_read < 0) break;
+		p += num_read;
+		if (p >= data + num_bytes) break;
+	}
+	if (p - data == num_bytes) whisper_tcp_connection_flush(c);
+	return p - data;
+}
+
+int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_bytes) {
+	int num_written;
+	char* p;
+	if (c < 0) return c;
+	p = out;
+	for (;;) {
+		num_written = read(c, p, out + num_bytes - p);
+		if (num_written < 0) break;
+		p += num_written;
+		if (p >= out + num_bytes) break;
+	}
+	return p - out;
+}
+
+int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int num_bytes) {
+	if (c < 0) return c;
+	return read(c, out, num_bytes);
 }
 
 int whisper_tcp_connection_flush(Whisper_TCPConnection c) {
