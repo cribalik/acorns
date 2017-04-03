@@ -1,3 +1,6 @@
+/* TODO: support IPv6 :) */
+
+/* We use getaddrinfo instead of gethostname */
 #define _POSIX_C_SOURCE 201112L
 #include "whisper.h"
 #include <unistd.h>
@@ -7,11 +10,20 @@
 #include <fcntl.h>
 #include <netdb.h>
 
-#if DEBUG
-#include <stdio.h>
-#endif
 
-void * memcpy ( void * destination, const void * source, size_t num );
+/* Some debugging stuff */
+#if DEBUG
+	#include <stdio.h>
+	#include <stdarg.h>
+	static void WHISPER_DEBUG(const char* fmt, ...) {
+		va_list args;
+		va_start(args, fmt);
+		vfprintf(stderr, fmt, args);
+		va_end(args);
+	}
+#else
+	static void WHISPER_DEBUG(const char* fmt, ...) {}
+#endif
 
 int whisper_tcp_server_init(Whisper_TCPServer* r_out, short port) {
 	return whisper_tcp_server_init_ex(r_out, port, 0);
@@ -90,20 +102,16 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, short
 		address = *(struct sockaddr_in*) address_info->ai_addr;
 		address.sin_port = htons(port);
 
-		#ifdef DEBUG
-			printf("Tring to connect to %s %i ... ", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-		#endif
+		WHISPER_DEBUG("Trying to connect to %s %i ... ", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
 		error = connect(socket_fd, (struct sockaddr*) &address, sizeof(address));
 
 		#ifdef DEBUG
-			if (error)
-				perror("Failed\n");
-			else
-				printf("Success\n");
+			if (error) perror("Failed");
+			else printf("Success\n");
 		#endif
 
-		if (error == 0) break;
+		if (!error) break;
 	}
 
 	if (error < 0) goto after_socket;
@@ -124,7 +132,6 @@ int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int size) {
 	if (c < 0) return c;
 	return read(c, out, size);
 }
-
 
 int whisper_tcp_connection_flush(Whisper_TCPConnection c) {
 	if (c < 0) return c;

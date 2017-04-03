@@ -4,8 +4,17 @@ LIBRARIES = whisper.o imagine.o
 
 all: test.out test2.out
 
-%.out: %.c $(LIBRARIES)
+clean:
+	rm *.o *.out
+
+test.out: test.c whisper.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-%.o:: %/*
-	$(CC) -c $(CFLAGS) ./$*/$*.c -o $@
+test2.out: test2.c whisper.o
+	$(CC) $(CFLAGS) $^ -o $@
+
+whisper.o: whisper/*
+	$(CC) -c $(CFLAGS) ./whisper/*.c -o whisper.o
+
+imagine.o: imagine/*
+	$(CC) -c $(CFLAGS) ./imagine/*.c -o imagine.o

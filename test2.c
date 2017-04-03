@@ -1,4 +1,3 @@
-#define DEBUG 1
 #include "whisper/whisper.h"
 #include <stdio.h>
 #include <stdlib.h>
