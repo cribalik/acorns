@@ -28,7 +28,7 @@ struct Img_Color imagine_color_alpha_blend(struct Img_Color back, struct Img_Col
   dst_a = (double) back.a / 255.0;
   src_a = (double) front.a / 255.0;
   out_a = src_a + dst_a*(1-src_a);
-  if (src_a > IMAGINE_EPSILON && out_a > IMAGINE_EPSILON) {
+  if (src_a > IMAGINE_EPSILON) {
     result.a = out_a * 255.0;
     result.r = (back.r*dst_a*(1-src_a) + front.r*src_a) / out_a;
     result.g = (back.g*dst_a*(1-src_a) + front.g*src_a) / out_a;
