@@ -2,15 +2,14 @@ CC = gcc
 CFLAGS = -ansi -pedantic -g -Wall -Wextra -DDEBUG=1
 LIBRARIES = whisper.o imagine.o
 
-all: test.out test2.out
+all: test
+
+test: test.out
 
 clean:
 	rm *.o *.out
 
-test.out: test.c whisper.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-test2.out: test2.c whisper.o
+test.out: test.c $(LIBRARIES)
 	$(CC) $(CFLAGS) $^ -o $@
 
 whisper.o: whisper/*

@@ -15,14 +15,9 @@
 #if DEBUG
 	#include <stdio.h>
 	#include <stdarg.h>
-	static void WHISPER_DEBUG(const char* fmt, ...) {
-		va_list args;
-		va_start(args, fmt);
-		vfprintf(stderr, fmt, args);
-		va_end(args);
-	}
+	#define WHISPER_DEBUG(STMT) do {STMT;} while(0)
 #else
-	static void WHISPER_DEBUG(const char* fmt, ...) {}
+	#define WHISPER_DEBUG(STMT) while(0) {STMT;}
 #endif
 
 int whisper_tcp_server_init(Whisper_TCPServer* r_out, short port) {
@@ -59,10 +54,7 @@ int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, short port, int non_blo
 	result = listen(socket_fd, 20);
 	if (result < 0) goto after_socket;
 
-	return 0;
-
-	after_socket:
-	close(socket_fd);
+	after_socket: close(socket_fd);
 	return result;
 }
 
@@ -97,29 +89,21 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, short
 	error = getaddrinfo(hostname, 0, &hints, &address_info);
 	if (error) goto after_socket;
 
-	/* try all the different hostnames */
+	/* try all the different hosts */
 	for (; address_info; address_info = address_info->ai_next) {
 		address = *(struct sockaddr_in*) address_info->ai_addr;
 		address.sin_port = htons(port);
 
-		WHISPER_DEBUG("Trying to connect to %s %i ... ", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+		WHISPER_DEBUG(printf("Trying to connect to %s %i ... ", inet_ntoa(address.sin_addr), ntohs(address.sin_port)));
 
 		error = connect(socket_fd, (struct sockaddr*) &address, sizeof(address));
 
-		#if DEBUG
-			if (error) perror("Failed");
-			else printf("Success\n");
-		#endif
+		WHISPER_DEBUG( if (error) perror("Failed"); else printf("Success\n"); );
 
 		if (!error) break;
 	}
 
-	if (error < 0) goto after_socket;
-
-	return 0;
-
-	after_socket:
-	close(socket_fd);
+	after_socket: close(socket_fd);
 	return error;
 }
 
