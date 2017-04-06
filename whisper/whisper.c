@@ -14,7 +14,6 @@
 /* Some debugging stuff */
 #if DEBUG
 	#include <stdio.h>
-	#include <stdarg.h>
 	#define WHISPER_DEBUG(STMT) do {STMT;} while(0)
 #else
 	#define WHISPER_DEBUG(STMT) while(0) {STMT;}
