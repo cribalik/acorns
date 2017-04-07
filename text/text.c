@@ -82,8 +82,9 @@ void text_free(Text s) {
 }
 
 void text_append_char(Text* s, char c) {
-  s->data[s->length++] = c;
+  ++s->length;
   text_reserve(s);
+  s->data[s->length-1] = c;
   s->data[s->length] = 0;
 }
 
