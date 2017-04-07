@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -ansi -pedantic -g -Wall -Wextra -DDEBUG=1
 CINCLUDE = -Iinclude
-LIBRARIES = whisper.o imagine.o text.o
+LIBRARIES = whisper.o imagine.o text.o array.o
 
 all: test
 
@@ -21,3 +21,6 @@ whisper.o: whisper/*
 
 imagine.o: imagine/*
 	$(CC) -c $(CFLAGS) ./imagine/*.c -o imagine.o $(CINCLUDE)
+
+array.o: array/*
+	$(CC) -c $(CFLAGS) ./array/*.c -o array.o $(CINCLUDE)

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include "array.h"
 
 void test_strings() {
 	Text t = text_create_ex(3, "12345");
@@ -33,9 +34,23 @@ void test_strings() {
 	assert(t.length == 26);
 }
 
+void test_arrays() {
+	int i;
+	int* a = array_create(int);
+	for (i = 0; i < 1000; ++i)
+		array_push(&a, i);
+
+	assert(array_len(a) == 1000);
+
+	for (i = 0; i < 1000; ++i)
+		assert(a[i] == i);
+}
+
 int main(int argc, const char *argv[]) {
 	(void)argc, (void)argv;
 
 	test_strings();
+
+	test_arrays();
 	return 0;
 }
