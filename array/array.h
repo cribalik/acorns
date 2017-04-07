@@ -2,9 +2,7 @@
 #define ARRAY_H
 
 /**
-* Awesome array. FIXME: alignment :O
-*
-* Example
+*               Example
 *
 *   double* d = array_create(double)
 *
@@ -14,7 +12,6 @@
 *
 *   printf("%d%d%d\n", d[0], d[1], d[2]);
 */
-
 
 #define array_create(type) array_internal_create(sizeof(type))
 int     array_len(void* a);
@@ -29,3 +26,4 @@ void  array_internal_push(void** arrp, int size);
 void* array_internal_create(int size);
 
 #endif
+

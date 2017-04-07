@@ -1,4 +1,7 @@
+/* FIXME: alignment */
+
 #include <stdlib.h>
+
 
 #define ARRAY_INITIAL_SIZE 4
 
@@ -31,3 +34,4 @@ int array_len(void* a) {
 int array_capacity(void* a) {
 	return array_header(a)->capacity;
 }
+
