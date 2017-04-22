@@ -34,23 +34,39 @@ void test_strings() {
 	assert(t.length == 26);
 }
 
+struct Data {int a,b;};
+struct Data create_data(int a, int b) {
+	struct Data result;
+	result.a = a;
+	result.b = b;
+	return result;
+}
+
 void test_arrays() {
-	int i;
-	int* a = array_create(int);
-	for (i = 0; i < 1000; ++i)
-		array_push(&a, i);
+	struct Data* n = array_create(struct Data);
+	array_push(&n, create_data(1,2));
+	array_push(&n, create_data(3,4));
+	array_push(&n, create_data(5,6));
+	array_push(&n, create_data(7,8));
+	assert(array_len(n) == 4
+		&& n[0].a == 1 && n[0].b == 2
+		&& n[1].a == 3 && n[1].b == 4
+		&& n[2].a == 5 && n[2].b == 6
+		&& n[3].a == 7 && n[3].b == 8
+		);
 
-	assert(array_len(a) == 1000);
-
-	for (i = 0; i < 1000; ++i)
-		assert(a[i] == i);
+	n[1] = n[--array_len(n)];
+	n[0] = n[--array_len(n)];
+	assert(array_len(n) == 2
+		&& n[0].a == 5 && n[0].b == 6
+		&& n[1].a == 7 && n[1].b == 8
+		);
+	array_free(n);
 }
 
 int main(int argc, const char *argv[]) {
 	(void)argc, (void)argv;
-
 	test_strings();
-
 	test_arrays();
 	return 0;
 }

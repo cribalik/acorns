@@ -8,13 +8,13 @@ struct Img_Color imagine_color_create(unsigned char r, unsigned char g, unsigned
 }
 
 /**
- * Blend one color over another (non-premultiplied alpha)
+ * Alpha blend one color over another (non-premultiplied alpha)
  *
  * Example
  *
  *  struct Img_Color
- *    background = ...,
- *    foreground = ...,
+ *    background = {0, 113, 70, 160},
+ *    foreground = {0, 255, 255, 200};
  *
  *  struct Img_Color blended = imagine_color_alpha_blend(backgrund, foreground);
  *
@@ -59,7 +59,7 @@ struct Img_Color imagine_color_alpha_blend(struct Img_Color back, struct Img_Col
  *  if (e) {puts("Failed to save bmp file"); return 1;}
  */
 int imagine_bmp_save(const char *filename, const char* rgb, int width, int height, int stride) {
-	int i,j,ipos;
+	int i,j,ipos,err;
 	int bytesPerLine;
 	FILE *file;
 
@@ -82,6 +82,9 @@ int imagine_bmp_save(const char *filename, const char* rgb, int width, int heigh
 	unsigned int biClrImportant;
 	/* End BMP header */
 
+	file = fopen(filename, "wb");
+	if (!file) return 1;
+
 	bytesPerLine = (3 * (width + 1) / 4) * 4;
 	bfType = ('M' << 8) | 'B';
 	bfOffBits = 54;
@@ -99,9 +102,6 @@ int imagine_bmp_save(const char *filename, const char* rgb, int width, int heigh
 	biYPelsPerMeter = 0;
 	biClrUsed = 0;       
 	biClrImportant = 0; 
-
-	file = fopen(filename, "wb");
-	if (!file) return 1;
 
 	fwrite(&bfType, 2, 1, file);
 	fwrite(&bfSize, 4, 1, file);
