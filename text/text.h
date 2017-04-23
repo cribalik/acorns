@@ -2,8 +2,8 @@
 #define STRING_H
 
 typedef struct Text {
-	char* data;
-	int length, capacity;
+  char* data;
+  int length, capacity;
 } Text;
 
 Text text_create();
