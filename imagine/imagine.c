@@ -59,7 +59,7 @@ struct Img_Color imagine_color_alpha_blend(struct Img_Color back, struct Img_Col
  *  if (e) {puts("Failed to save bmp file"); return 1;}
  */
 int imagine_bmp_save(const char *filename, const char* rgb, int width, int height, int stride) {
-  int i,j,ipos,err;
+  int i,j,ipos;
   int bytesPerLine;
   FILE *file;
 
