@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <time.h>
 #include "array.h"
 
 void test_strings() {
@@ -43,25 +45,57 @@ struct Data create_data(int a, int b) {
 }
 
 void test_arrays() {
-  struct Data* n = array_create(struct Data);
-  array_push(&n, create_data(1,2));
-  array_push(&n, create_data(3,4));
-  array_push(&n, create_data(5,6));
-  array_push(&n, create_data(7,8));
-  assert(array_len(n) == 4
-    && n[0].a == 1 && n[0].b == 2
-    && n[1].a == 3 && n[1].b == 4
-    && n[2].a == 5 && n[2].b == 6
-    && n[3].a == 7 && n[3].b == 8
-    );
+  #define LARGE_VALUE 5107
+  {
+    double* correct = malloc(LARGE_VALUE * sizeof(*correct));
+    double* d = array_create(double);
+    int i,j,n=0;
+    srand(time(0));
+    for (i = 0; i < LARGE_VALUE; ++i) {
+      if (n > 0 && !(rand()&5)) {
+        /* pop */
+        j = rand()%n;
+        correct[j] = correct[--n];
+        d[j] = d[--array_len(d)];
+      } else {
+        /* push */
+        double r = rand() / 7.3;
+        correct[n++] = r;
+        array_push(&d, r);
+      }
+      assert(n == array_len(d));
+      for(j = 0; j < n; ++j)
+        assert(correct[j] == d[j]);
+    }
+    array_free(d);
+    free(correct);
+  }
 
-  n[1] = n[--array_len(n)];
-  n[0] = n[--array_len(n)];
-  assert(array_len(n) == 2
-    && n[0].a == 5 && n[0].b == 6
-    && n[1].a == 7 && n[1].b == 8
-    );
-  array_free(n);
+  {
+    struct Data* correct = malloc(LARGE_VALUE * sizeof(*correct));
+    struct Data* d = array_create(struct Data);
+    int i,j,a,b,n=0;
+    srand(time(0));
+    for (i = 0; i < LARGE_VALUE; ++i) {
+      if (n > 0 && !(rand()%5)) {
+        /* pop */
+        a = rand()%n;
+        correct[a] = correct[--n];
+        d[a] = d[--array_len(d)];
+      } else {
+        /* push */
+        a = rand(); b = rand();
+        correct[n] = create_data(a,b);
+        array_push(&d, correct[n]);
+        ++n;
+      }
+      assert(n == array_len(d));
+      for(j = 0; j < n; ++j)
+        assert(!memcmp(&correct[j], &d[j], sizeof(d[j])));
+    }
+    array_free(d);
+    free(correct);
+  }
 }
 
 int main(int argc, const char *argv[]) {
