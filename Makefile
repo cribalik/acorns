@@ -1,12 +1,21 @@
 CC = gcc
-CFLAGS = -ansi -pedantic -g -Wall -Wextra -DDEBUG=1
+CFLAGS = -ansi -pedantic -Wall -Wextra
+DEBUGFLAGS = -g -DDEBUG=1
+RELEASEFLAGS = -O3
 CINCLUDE = -Iinclude
 LIBRARIES = whisper.o imagine.o text.o array.o
 
-all: test
+all: debug
 
-test: test.out
+.PHONY: debug
+debug: CFLAGS += $(DEBUGFLAGS)
+debug: test.out
 
+.PHONY: release
+release: CFLAGS += $(RELEASEFLAGS)
+release: test.out
+
+.PHONY: clean
 clean:
 	rm -f *.o *.out
 
