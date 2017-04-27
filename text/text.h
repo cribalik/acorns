@@ -9,6 +9,8 @@ typedef struct Text {
 Text text_create();
 Text text_create_ex(int capacity, char* initial_value);
 
+#define text_get(text) text.data
+
 void text_append(Text* s, const char* fmt, ...);
 int  text_append_str(Text* a, const char* b);
 void text_append_char(Text* s, char c);
