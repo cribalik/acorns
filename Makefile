@@ -2,9 +2,9 @@ CC = gcc
 CFLAGS = -ansi -pedantic -Wall -Wextra
 DEBUGFLAGS = -g -DDEBUG=1
 RELEASEFLAGS = -O3
-CINCLUDE = -Iinclude
+CINCLUDE = -I.
 LIBRARIES = whisper.o imagine.o text.o
-INCLUDES = include/*.h
+INCLUDES = array/array.h
 
 all: debug
 
