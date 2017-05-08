@@ -1,5 +1,15 @@
-#ifndef STRING_H
-#define STRING_H
+#ifndef TEXT_H
+#define TEXT_H
+
+#ifndef TEXT_REALLOC
+#include <stdlib.h>
+#define TEXT_REALLOC realloc
+#endif
+
+#ifndef TEXT_FREE
+#include <stdlib.h>
+#define TEXT_FREE free
+#endif
 
 typedef struct Text {
   char* data;
@@ -9,7 +19,7 @@ typedef struct Text {
 Text text_create();
 Text text_create_ex(int capacity, char* initial_value);
 
-#define text_get(text) text.data
+#define text_get(text) text.get
 
 void text_append(Text* s, const char* fmt, ...);
 int  text_append_str(Text* a, const char* b);

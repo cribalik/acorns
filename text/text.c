@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "text.h"
-#include "text_alloc.h"
 
 #ifndef TEXT_INITIAL_SIZE
   #define TEXT_INITIAL_SIZE 8
@@ -15,7 +14,7 @@ static char text_null = '\0';
 
 static void text_reserve(Text* a) {
   if (!TEXT_IS_ALLOCATED(*a)) {
-    a->data = TEXT_MALLOC(a->length+1);
+    a->data = TEXT_REALLOC(0, a->length+1);
     a->capacity = a->length+1;
   }
   else if (a->length+1 > a->capacity) {
@@ -45,7 +44,7 @@ Text text_create_ex(int capacity, char* initial_value) {
 
   result.capacity = capacity;
   if (capacity) {
-    result.data = TEXT_MALLOC(capacity);
+    result.data = TEXT_REALLOC(0, capacity);
   } else {
     result.data = &text_null;
   }
