@@ -1,11 +1,11 @@
 #define DEBUG 1
-#include "text.h"
+#include "text/text.h"
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <time.h>
-#include "array.h"
+#include "array/array.h"
 
 void test_strings() {
   Text t = text_create_ex(3, "12345");
