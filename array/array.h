@@ -1,10 +1,17 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
-#include <stdlib.h>
-#include <stddef.h>
-
 #define ARRAY_INITIAL_SIZE 4
+
+#ifndef ARRAY_REALLOC
+#include <stdlib.h>
+#define ARRAY_REALLOC realloc
+#endif
+
+#ifndef ARRAY_FREE
+#include <stdlib.h>
+#define ARRAY_FREE free
+#endif
 
 /**
 *               Example
@@ -30,9 +37,9 @@
 
 #define array_len(a) ((a) ? array__n((a)) : 0)
 #define array_len_get(a) (array__n(a))
-#define array_push(a, val) (((a)==0 || array__n(a) == array__c(a) ? (a) = array__grow(a, sizeof(*(a)), 1) : 0), a[array__n(a)++] = val)
-#define array_push_n(a, n) (((a)==0 || array__n(a)+(n) >= array__c(a) ? (a)=array__grow(a, sizeof(*(a)), n) : 0), array__n(a) += (n), (a)[array__n(a)-(n)])
-#define array_free(a) free(&array__n((a)))
+#define array_push(a, val) ((!(a) || array__n(a) == array__c(a) ? (a)=array__grow(a, sizeof(*(a)), 1) : 0), a[array__n(a)++] = val)
+#define array_push_n(a, n) ((!(a) || array__n(a)+(n) >= array__c(a) ? (a)=array__grow(a, sizeof(*(a)), n) : 0), array__n(a) += (n), (a)[array__n(a)-(n)])
+#define array_free(a) ((a) ? ARRAY_FREE(&array__n(a)),0 : 0)
 
 /* Internals */
 #define array__c(a) ((int*)(a))[-1]
@@ -40,7 +47,7 @@
 static void* array__grow(void* a, int size, int num) {
   int newc = a ? (num + array__n(a) > array__c(a)*2 ? num + array__n(a) : array__c(a)*2) : (num > ARRAY_INITIAL_SIZE ? num : ARRAY_INITIAL_SIZE);
   int n = a ? array__n(a) : 0;
-  a = (int*)realloc(a ? &array__n(a) : 0, newc*size + 2*sizeof(int)) + 2;
+  a = (int*)ARRAY_REALLOC(a ? &array__n(a) : 0, newc*size + 2*sizeof(int)) + 2;
   array__n(a) = n;
   array__c(a) = newc;
   return a;
