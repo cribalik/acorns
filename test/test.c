@@ -48,7 +48,7 @@ void test_arrays() {
   #define LARGE_VALUE 5107
   {
     double* correct = malloc(LARGE_VALUE * sizeof(*correct));
-    double* d = array_create(double);
+    double* d = 0;
     int i,j,n=0;
     srand(time(0));
     for (i = 0; i < LARGE_VALUE; ++i) {
@@ -56,12 +56,12 @@ void test_arrays() {
         /* pop */
         j = rand()%n;
         correct[j] = correct[--n];
-        d[j] = d[--array_len(d)];
+        d[j] = d[--array_len_get(d)];
       } else {
         /* push */
         double r = rand() / 7.3;
         correct[n++] = r;
-        array_push(&d, r);
+        array_push(d, r);
       }
       assert(n == array_len(d));
       for(j = 0; j < n; ++j)
@@ -73,7 +73,7 @@ void test_arrays() {
 
   {
     struct Data* correct = malloc(LARGE_VALUE * sizeof(*correct));
-    struct Data* d = array_create(struct Data);
+    struct Data* d = 0;
     int i,j,a,b,n=0;
     srand(time(0));
     for (i = 0; i < LARGE_VALUE; ++i) {
@@ -81,12 +81,12 @@ void test_arrays() {
         /* pop */
         a = rand()%n;
         correct[a] = correct[--n];
-        d[a] = d[--array_len(d)];
+        d[a] = d[--array_len_get(d)];
       } else {
         /* push */
         a = rand(); b = rand();
         correct[n] = create_data(a,b);
-        array_push(&d, correct[n]);
+        array_push(d, correct[n]);
         ++n;
       }
       assert(n == array_len(d));

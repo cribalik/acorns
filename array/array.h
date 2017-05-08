@@ -1,28 +1,49 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include <stdlib.h>
+#include <stddef.h>
+
+#define ARRAY_INITIAL_SIZE 4
+
 /**
 *               Example
 *
-*   double* d = array_create(double)
+*   double* d = 0;
 *
-*   array_push(&d, 0.3);
-*   array_push(&d, 7.0);
-*   array_push(&d, 5);
+*   array_push(d, 0.3);
+*   array_push(d, 7.0);
+*   array_push(d, 5);
 *
-*   d[1] = d[array_len(d)--];
+*   // remove the second element
+*   d[1] = d[array_len_get(d)--];
+*   printf("number of items in array: %i", array_len(d));
 *
 *   printf("%d -- %d\n", d[0], d[1]); // 0.3 -- 5
+*
+*   char* msg = "hello";
+*   char* str = 0;
+*   memcpy(array_push_n(str, strlen(msg)+1), "hello")
 */
 
-#define array_create(type) array_internal_create(sizeof(type))
-#define array_len(arr) (*array_internal_len(arr))
-#define array_push(arr_addr, val) array_internal_push((void**) arr_addr, sizeof(**arr_addr)), (*arr_addr)[array_len(*arr_addr)-1] = val
-void    array_free(void* a);
+/* API */
 
-/* Internal API */
-int*  array_internal_len(void* arr);
-void  array_internal_push(void** arrp, int size);
-void* array_internal_create(int size);
+#define array_len(a) ((a) ? array__n((a)) : 0)
+#define array_len_get(a) (array__n(a))
+#define array_push(a, val) (((a)==0 || array__n(a) == array__c(a) ? (a) = array__grow(a, sizeof(*(a)), 1) : 0), a[array__n(a)++] = val)
+#define array_push_n(a, n) (((a)==0 || array__n(a)+(n) >= array__c(a) ? (a)=array__grow(a, sizeof(*(a)), n) : 0), array__n(a) += (n), (a)[array__n(a)-(n)])
+#define array_free(a) free(&array__n((a)))
+
+/* Internals */
+#define array__c(a) ((int*)(a))[-1]
+#define array__n(a) ((int*)(a))[-2]
+static void* array__grow(void* a, int size, int num) {
+  int newc = a ? (num + array__n(a) > array__c(a)*2 ? num + array__n(a) : array__c(a)*2) : (num > ARRAY_INITIAL_SIZE ? num : ARRAY_INITIAL_SIZE);
+  int n = a ? array__n(a) : 0;
+  a = (int*)realloc(a ? &array__n(a) : 0, newc*size + 2*sizeof(int)) + 2;
+  array__n(a) = n;
+  array__c(a) = newc;
+  return a;
+}
 
 #endif /* ARRAY_H */
