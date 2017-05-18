@@ -3,8 +3,8 @@ CFLAGS = -ansi -pedantic -Wall -Wextra
 DEBUGFLAGS = -g -DDEBUG=1
 RELEASEFLAGS = -O3
 CINCLUDE = -I.
-LIBRARIES = whisper.o imagine.o text.o
-INCLUDES = array/array.h
+LIBRARIES = whisper.o imagine.o
+INCLUDES = array/array.h text/text.h
 
 all: debug
 
@@ -22,9 +22,6 @@ clean:
 
 test.out: test/test.c $(LIBRARIES) $(INCLUDES)
 	$(CC) $(CFLAGS) $(LIBRARIES) test/test.c -o $@ $(CINCLUDE)
-
-text.o: text/*
-	$(CC) -c $(CFLAGS) ./text/*.c -o text.o $(CINCLUDE)
 
 whisper.o: whisper/*
 	$(CC) -c $(CFLAGS) ./whisper/*.c -o whisper.o $(CINCLUDE)

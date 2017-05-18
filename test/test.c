@@ -1,4 +1,5 @@
 #define DEBUG 1
+#define TEXT_IMPLEMENTATION
 #include "text/text.h"
 #include <string.h>
 #include <stdio.h>
