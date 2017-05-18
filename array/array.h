@@ -1,18 +1,6 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
-#define ARRAY_INITIAL_SIZE 4
-
-#ifndef ARRAY_REALLOC
-#include <stdlib.h>
-#define ARRAY_REALLOC realloc
-#endif
-
-#ifndef ARRAY_FREE
-#include <stdlib.h>
-#define ARRAY_FREE free
-#endif
-
 /**
 *               Example
 *
@@ -34,6 +22,20 @@
 */
 
 /* API */
+
+#ifndef ARRAY_INITIAL_SIZE
+  #define ARRAY_INITIAL_SIZE 4
+#endif
+
+#ifndef ARRAY_REALLOC
+  #include <stdlib.h>
+  #define ARRAY_REALLOC realloc
+#endif
+
+#ifndef ARRAY_FREE
+  #include <stdlib.h>
+  #define ARRAY_FREE free
+#endif
 
 #define array_len(a) ((a) ? array__n((a)) : 0)
 #define array_len_get(a) (array__n(a))
