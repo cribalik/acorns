@@ -1,6 +1,10 @@
 #ifndef TEXT_H
 #define TEXT_H
 
+/* =============================
+ *              API  
+ * =============================*/
+
 typedef struct Text {
   char* data;
   int length, capacity;
@@ -26,6 +30,11 @@ void text_clear(Text* s);
 void text_free(Text s);
 
 #endif
+
+
+/* =============================
+ *        Implementation  
+ * =============================*/
 
 #ifdef TEXT_IMPLEMENTATION
 
