@@ -13,7 +13,7 @@ typedef struct Text {
 Text text_create();
 Text text_create_ex(int capacity, char* initial_value);
 
-#define text_get(text) text.get
+#define text_get(text) text.data
 
 void text_append(Text* s, const char* fmt, ...);
 int  text_append_str(Text* a, const char* b);
@@ -167,9 +167,7 @@ void text_append_double(Text* s, double d) {
   }
 }
 
-void text_append(Text* s, const char* fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
+void text_append_v(Text* s, const char* fmt, va_list args) {
   for (; *fmt; ++fmt) {
     if (*fmt != '%') {
       text_append_char(s, *fmt);
@@ -188,6 +186,12 @@ void text_append(Text* s, const char* fmt, ...) {
       }
     }
   }
+}
+
+void text_append(Text* s, const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  text_append_v(fmt, args);
   va_end(args);
 }
 
