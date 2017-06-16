@@ -39,7 +39,7 @@
 
 #define array_len(a) ((a) ? array__n((a)) : 0)
 #define array_len_get(a) (array__n(a))
-#define array_push(a, val) ((!(a) || array__n(a) == array__c(a) ? (a)=array__grow(a, sizeof(*(a)), 1) : 0), a[array__n(a)++] = val)
+#define array_push(a, val) ((!(a) || array__n(a) == array__c(a) ? (a)=array__grow(a, sizeof(*(a)), 1) : 0), (a)[array__n(a)++] = val)
 #define array_push_n(a, n) ((!(a) || array__n(a)+(n) >= array__c(a) ? (a)=array__grow(a, sizeof(*(a)), n) : 0), array__n(a) += (n), (a)[array__n(a)-(n)])
 #define array_free(a) ((a) ? ARRAY_FREE(&array__n(a)),0 : 0)
 
