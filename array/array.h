@@ -4,21 +4,13 @@
 /**
 *               Example
 *
-*   double* d = 0;
+*   Array(double) d = 0;
 *
 *   array_push(d, 0.3);
 *   array_push(d, 7.0);
-*   array_push(d, 5);
 *
-*   // remove the second element
-*   d[1] = d[array_len_get(d)--];
-*   printf("number of items in array: %i", array_len(d));
-*
-*   printf("%d -- %d\n", d[0], d[1]); // 0.3 -- 5
-*
-*   char* msg = "hello";
-*   char* str = 0;
-*   memcpy(array_push_n(str, strlen(msg)+1), "hello")
+*   for (int i = 0; i < array_len(d); ++i)
+*     printf("%f\n", d[i]);
 */
 
 /* API */
