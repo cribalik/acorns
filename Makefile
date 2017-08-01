@@ -4,7 +4,7 @@ DEBUGFLAGS = -g -DDEBUG=1
 RELEASEFLAGS = -O3
 CINCLUDE = -I.
 LIBRARIES = whisper.o imagine.o
-INCLUDES = array/array.h text/text.h
+INCLUDES = array/array.h text/text.h milk/milk.h
 
 all: debug
 

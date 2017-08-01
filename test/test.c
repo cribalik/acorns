@@ -2,6 +2,7 @@
 #define TEXT_IMPLEMENTATION
 #include "text/text.h"
 #include "array/array.h"
+#include "milk/milk.h"
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
@@ -99,9 +100,27 @@ void test_arrays() {
   }
 }
 
+static void test_milk() {
+  long res1, res2;
+  FILE *file;
+
+  res1 = milk_file_get_size_s("test/test.c");
+  assert(res1 > 0);
+
+  file = fopen("test/test.c", "rb");
+  assert(file);
+
+  res2 = milk_file_get_size_f(file);
+  assert(res2 > 0);
+
+  assert(res1 == res2);
+  printf("File test/test.c is %li bytes\n", res1);
+}
+
 int main(int argc, const char *argv[]) {
   (void)argc, (void)argv;
   test_strings();
   test_arrays();
+  test_milk();
   return 0;
 }
