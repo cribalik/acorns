@@ -73,7 +73,7 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, short
   int
     socket_fd,
     error;
-  struct addrinfo *address_info;
+  struct addrinfo *address_info_head, *address_info;
   struct addrinfo hints = {0};
   struct sockaddr_in address;
 
@@ -85,11 +85,11 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, short
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  error = getaddrinfo(hostname, 0, &hints, &address_info);
-  if (error) goto after_socket;
+  error = getaddrinfo(hostname, 0, &hints, &address_info_head);
+  if (error) goto err;
 
   /* try all the different hosts */
-  for (; address_info; address_info = address_info->ai_next) {
+  for (address_info = address_info_head; address_info; address_info = address_info->ai_next) {
     address = *(struct sockaddr_in*) address_info->ai_addr;
     address.sin_port = htons(port);
 
@@ -97,12 +97,21 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, short
 
     error = connect(socket_fd, (struct sockaddr*) &address, sizeof(address));
 
-    WHISPER_DEBUG( if (error) perror("Failed"); else printf("Success\n"); );
+    WHISPER_DEBUG(
+      if (error) perror("Failed");
+      else printf("Success\n"););
 
     if (!error) break;
   }
 
-  after_socket: close(socket_fd);
+  freeaddrinfo(address_info_head);
+
+  if (!address_info) goto err;
+
+  return 0;
+
+  err:
+  close(socket_fd);
   return error;
 }
 
