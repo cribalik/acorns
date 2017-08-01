@@ -191,7 +191,7 @@ void text_append_v(Text* s, const char* fmt, va_list args) {
 void text_append(Text* s, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  text_append_v(fmt, args);
+  text_append_v(s, fmt, args);
   va_end(args);
 }
 
