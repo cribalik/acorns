@@ -2,9 +2,9 @@ CC = gcc
 CFLAGS = -ansi -pedantic -Wall -Wextra
 DEBUGFLAGS = -g -DDEBUG=1
 RELEASEFLAGS = -O3
-CINCLUDE = -I.
+CINCLUDE = -I. -pthread
 LIBRARIES = whisper.o imagine.o
-INCLUDES = array/array.h text/text.h milk/milk.h
+INCLUDES = array/array.h text/text.h milk/milk.h thread/thread.h
 
 all: debug
 
@@ -24,7 +24,7 @@ test.out: test/test.c $(LIBRARIES) $(INCLUDES)
 	$(CC) $(CFLAGS) $(LIBRARIES) test/test.c -o $@ $(CINCLUDE)
 
 whisper.o: whisper/*
-	$(CC) -c $(CFLAGS) ./whisper/*.c -o whisper.o $(CINCLUDE)
+	$(CC) -c $(CFLAGS) $(CINCLUDE) ./whisper/*.c -o whisper.o
 
 imagine.o: imagine/*
-	$(CC) -c $(CFLAGS) ./imagine/*.c -o imagine.o $(CINCLUDE)
+	$(CC) -c $(CFLAGS) ./imagine/*.c -o imagine.o

@@ -1,15 +1,23 @@
+#if 0
+#define _XOPEN_SOURCE 500
+#else
+#define _POSIX_C_SOURCE 199309L
+#endif
+
 #define DEBUG 1
 #define TEXT_IMPLEMENTATION
 #include "text/text.h"
 #include "array/array.h"
 #include "milk/milk.h"
+#define THREAD_IMPLEMENTATION
+#include "thread/thread.h"
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <time.h>
 
-void test_strings() {
+static void test_strings() {
   Text t = text_create_ex(3, "12345");
   assert(t.length == 5);
 
@@ -46,13 +54,12 @@ struct Data create_data(int a, int b) {
   return result;
 }
 
-void test_arrays() {
+static void test_arrays() {
   #define LARGE_VALUE 5107
   {
     double* correct = malloc(LARGE_VALUE * sizeof(*correct));
     double* d = 0;
     int i,j,n=0;
-    srand(time(0));
     for (i = 0; i < LARGE_VALUE; ++i) {
       if (n > 0 && !(rand()&5)) {
         /* pop */
@@ -77,7 +84,6 @@ void test_arrays() {
     struct Data* correct = malloc(LARGE_VALUE * sizeof(*correct));
     struct Data* d = 0;
     int i,j,a,b,n=0;
-    srand(time(0));
     for (i = 0; i < LARGE_VALUE; ++i) {
       if (n > 0 && !(rand()%5)) {
         /* pop */
@@ -117,10 +123,36 @@ static void test_milk() {
   printf("File test/test.c is %li bytes\n", res1);
 }
 
+static THREAD_PROC(do_something, arg) {
+  int ms = 300 + (rand()%401);
+  thread_usleep(1, ms);
+  printf("Thread %li slept for %i ms\n", (long)arg, 1000+ms);
+  return 0;
+}
+
+static void test_thread() {
+  Thread threads[4];
+  int i, err;
+
+  for (i = 0; i < 4; ++i) {
+    err = thread_create(threads+i, do_something, (void*)(long)i);
+    if (err)
+      printf("Error creating thread\n"), exit(1);
+  }
+
+  for (i = 0; i < 4; ++i) {
+    err = thread_join(threads[i]);
+    if (err)
+      printf("Error while joining threads\n"), exit(1);
+  }
+}
+
 int main(int argc, const char *argv[]) {
   (void)argc, (void)argv;
+  srand(time(0));
   test_strings();
   test_arrays();
   test_milk();
+  test_thread();
   return 0;
 }
