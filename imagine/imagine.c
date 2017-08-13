@@ -86,7 +86,7 @@ int imagine_bmp_save(const char *filename, const char* rgb, int width, int heigh
   if (!file) return 1;
 
   bytesPerLine = (3 * (width + 1) / 4) * 4;
-  bfType = ('M' << 8) | 'B';
+  bfType = ((unsigned int)'M' << 8) | (unsigned int)'B';
   bfOffBits = 54;
   bfSize = bfOffBits + bytesPerLine * height;
   bfReserved1 = 0;
