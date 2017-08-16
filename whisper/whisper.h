@@ -104,7 +104,7 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c);
 * Closes a connection, freeing its resources
 */
 
-#endif
+#endif /* WHISPER_H */
 
 #ifdef WHISPER_IMPLEMENTATION
 
@@ -112,7 +112,6 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c);
 
 /* We use getaddrinfo instead of gethostname */
 #define _POSIX_C_SOURCE 201112L
-#include "whisper.h"
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/types.h>

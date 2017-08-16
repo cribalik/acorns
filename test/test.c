@@ -5,11 +5,15 @@
 #endif
 
 #define DEBUG 1
-#define TEXT_IMPLEMENTATION
 #include "utils.h"
+#define TEXT_IMPLEMENTATION
 #include "text/text.h"
 #include "array/array.h"
 #include "milk/milk.h"
+#define WHISPER_IMPLEMENTATION
+#include "whisper/whisper.h"
+#define IMAGINE_IMPLEMENTATION
+#include "imagine/imagine.h"
 #define THREAD_IMPLEMENTATION
 #include "thread/thread.h"
 #include <string.h>
