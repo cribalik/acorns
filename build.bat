@@ -1,0 +1,1 @@
+cl test/test.c -I.
