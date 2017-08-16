@@ -65,7 +65,7 @@ static void text_reserve(Text* a) {
     a->capacity = a->length+1;
   }
   else if (a->length >= a->capacity) {
-    while (a->capacity < a->length) a->capacity *= 2;
+    while (a->capacity <= a->length) a->capacity *= 2;
     a->data = TEXT_REALLOC(a->data, a->capacity);
   }
 }
@@ -140,9 +140,9 @@ void text_append_int(Text* s, int i) {
 
 void text_append_long(Text* s, long i) {
   char buf[32];
-  char* b = buf + 30;
+  char* b = buf + 31;
   int neg = i < 0;
-  b[31] = 0;
+  *b-- = 0;
   if (neg) i *= -1;
   while (i) {
     *b-- = '0' + i%10;

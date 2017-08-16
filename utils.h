@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#define STATIC_ASSERT(expr, name) typedef char static_assert_##name[expr?1:-1];
+#define STATIC_ASSERT(expr, name) typedef char static_assert_##name[expr?1:-1]
 #define ALIGN(x, val) ALIGN_MASK(x, val-1)
 #define ALIGN_MASK(x, mask) (((x)+(mask)) & ~(mask))
 
