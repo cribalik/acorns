@@ -1,1 +1,1 @@
-cl test/test.c -I. /Wall /ZI
+cl src/test.c -I.\src /Wall /ZI

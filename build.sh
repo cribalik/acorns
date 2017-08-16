@@ -1,1 +1,3 @@
-gcc -ansi -pedantic -Wall -Wextra -g -DDEBUG=1 test/test.c -o test.out -I. -pthread
+#!/usr/bin/env bash
+cd $(dirname "$0")
+gcc -ansi -pedantic -Wall -Wextra -g -DDEBUG=1 src/test.c -o test.out -I./src -pthread

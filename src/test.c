@@ -7,15 +7,15 @@
 #define DEBUG 1
 #include "utils.h"
 #define TEXT_IMPLEMENTATION
-#include "text/text.h"
-#include "array/array.h"
-#include "milk/milk.h"
+#include "text.h"
+#include "array.h"
+#include "milk.h"
 #define WHISPER_IMPLEMENTATION
-#include "whisper/whisper.h"
+#include "whisper.h"
 #define IMAGINE_IMPLEMENTATION
-#include "imagine/imagine.h"
+#include "imagine.h"
 #define THREAD_IMPLEMENTATION
-#include "thread/thread.h"
+#include "thread.h"
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
