@@ -6,6 +6,7 @@
 
 #define DEBUG 1
 #define TEXT_IMPLEMENTATION
+#include "utils.h"
 #include "text/text.h"
 #include "array/array.h"
 #include "milk/milk.h"
@@ -123,27 +124,103 @@ static void test_milk() {
   printf("File test/test.c is %li bytes\n", res1);
 }
 
-static THREAD_PROC(do_something, arg) {
-  int ms = 300 + (rand()%401);
-  thread_usleep(1, ms);
-  printf("Thread %li slept for %i ms\n", (long)arg, 1000+ms);
-  return 0;
-}
+#define ARRAY_COUNT(a) ((int)(sizeof(a)/sizeof(*a)))
+typedef int Job;
+struct WorkQueue {
+  Job *volatile end;
+  Job *volatile next;
+  Job jobs[4];
+};
 
-static void test_thread() {
-  Thread threads[4];
-  int i, err;
+#define NUM_ITERS 10000
+#define NUM_ITEMS 4
+static void thread_adding(void *arg) {
+  int volatile *items;
+  int i,j;
 
-  for (i = 0; i < 4; ++i) {
-    err = thread_create(threads+i, do_something, (void*)(long)i);
-    if (err)
-      printf("Error creating thread\n"), exit(1);
+  items = arg;
+
+  for (i = 0; i < NUM_ITERS; ++i)
+  for (j = 0; j < NUM_ITEMS; ++j) {
+#if 0
+    ++items[j];
+#else
+    thread_add(&items[j], 1);
+#endif
   }
 
-  for (i = 0; i < 4; ++i) {
-    err = thread_join(threads[i]);
-    if (err)
-      printf("Error while joining threads\n"), exit(1);
+  return;
+}
+
+static void thread_workqueue(void *arg) {
+  (void)arg;
+#if 0
+  for (;;) {
+    Job job;
+    Job *j;
+   
+    while (work_queue->next == work_queue->end)
+      thread_usleep(0, 500);
+
+    j = work_queue->next;
+    job = *j;
+    if (thread_cas(&work_queue->next, j, j+1) != j)
+      continue;
+
+    printf("Performed job %i\n", job);
+  }
+#endif
+  return;
+}
+
+
+static void test_thread() {
+#define NUM_THREADS 256
+  Thread threads[NUM_THREADS];
+  int i,err;
+
+  /* test adding */
+  {
+    int *items;
+
+    items = malloc(sizeof(*items) * NUM_ITEMS);
+    for (i = 0; i < NUM_ITEMS; ++i)
+      items[i] = 0;
+
+    for (i = 0; i < NUM_THREADS; ++i) {
+      err = thread_create(threads+i, thread_adding, items);
+      if (err)
+        printf("Error creating thread\n"), exit(1);
+    }
+
+    for (i = 0; i < NUM_THREADS; ++i) {
+      err = thread_join(threads[i]);
+      if (err)
+        printf("Error while joining threads\n"), exit(1);
+    }
+
+    for (i = 0; i < NUM_ITEMS; ++i) {
+      printf("%i\n", items[i]);
+      if (items[i] != NUM_THREADS*NUM_ITERS)
+        printf("Fail test\n"), exit(1);
+    }
+    free(items);
+  }
+  
+  /* test workqueue */
+  {
+    struct WorkQueue work_queue = {0};
+    for (i = 0; i < NUM_THREADS; ++i) {
+      err = thread_create(threads+i, thread_workqueue, &work_queue);
+      if (err)
+        printf("Error creating thead\n"), exit(1);
+    }
+
+    for (i = 0; i < NUM_THREADS; ++i) {
+      err = thread_join(threads[i]);
+      if (err)
+        printf("Error while joining threads\n"), exit(1);
+    }
   }
 }
 

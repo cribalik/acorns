@@ -5,27 +5,38 @@
 #define THREAD_H
 
 #if !defined(__linux__) && !defined(__APPLE__) && !defined(_MSC_VER)
-#error Unknown platform
+#error "Unknown platform"
 #endif
+
+/** LINUX HEADER **/
 
 #if defined(__linux__)
 
+#ifndef __GNUC__
+#error "Only gcc compiler supported for linux"
+#endif
+
 #include <pthread.h>
-typedef pthread_t Thread;
+typedef struct {pthread_t pthread; void (*proc)(void*); void *arg;} Thread;
 typedef pthread_mutex_t Thread_Mutex;
-#define THREAD_PROC(name, arg) void* name(void *arg)
 
 #if _XOPEN_SOURCE >= 500 || _POSIX_C_SOURCE >= 199309L
 #define THREAD__HAS_USLEEP
 #endif
 
 #else
+/** TODO: WINDOWS, MAC HEADER **/
 #error Unimplemented platform
 #endif
 
-int thread_create(Thread *thread, THREAD_PROC(proc, arg), void *args);
+/** GENERIC HEADER **/
+
+int thread_create(Thread *thread, void (*proc)(void*), void *arg);
 int thread_join(Thread thread);
 int thread_mutex_init(Thread_Mutex *mutex);
+long thread_cas(long *ptr, long expected, long newval);
+long thread_add(long *ptr, long n);
+void thread_barrier();
 int thread_sleep(int seconds);
 #ifdef THREAD__HAS_USLEEP
 int thread_usleep(int seconds, int milliseconds);
@@ -37,7 +48,7 @@ int thread_usleep(int seconds, int milliseconds);
 
 #ifdef THREAD_IMPLEMENTATION
 
-/** LINUX **/
+/** LINUX IMPLEMENTATION **/
 
 #if defined(__linux__)
 
@@ -45,24 +56,29 @@ int thread_usleep(int seconds, int milliseconds);
 #include <unistd.h>
 #include <time.h>
 
-struct ArgWrapper {void *arg; void(*proc)(void*);};
-void *thread__pthread_create_wrapper(void *arg);
+void *thread__pthread_proc_wrapper(void *arg) {
+  Thread *thread = arg;
+  thread->proc(thread->arg);
+  return 0;
+}
 
-int thread_create(Thread *thread, THREAD_PROC(proc, arg), void *arg) {
-  return pthread_create(thread, 0, proc, arg);
+int thread_create(Thread *thread, void (*proc)(void*), void *arg) {
+  thread->arg = arg;
+  thread->proc = proc;
+  return pthread_create(&thread->pthread, 0, thread__pthread_proc_wrapper, thread);
 }
 
 int thread_join(Thread thread) {
-  return pthread_join(thread, 0);
+  return pthread_join(thread.pthread, 0);
 }
 
 #define thread_mutex_init(mutex_ptr) pthread_mutex_init((mutex_ptr), 0)
-#define thread_lock(mutex_ptr) pthread_mutex_lock(mutex_ptr)
-#define thread_unlock(mutex_ptr) pthread_mutex_unlock(mutex_ptr)
-
-int thread_sleep(int seconds) {
-  return sleep(seconds);
-}
+#define thread_lock(mutex_ptr)       pthread_mutex_lock(mutex_ptr)
+#define thread_unlock(mutex_ptr)     pthread_mutex_unlock(mutex_ptr)
+#define thread_cas(ptr, expected_val, new_val) __sync_val_compare_and_swap(ptr, expected_val, new_val)
+#define thread_add(ptr, n)                     __sync_fetch_and_add(ptr, n)
+#define thread_barrier()                       __sync_synchronize()
+#define thread_sleep(seconds) sleep(seconds)
 
 #ifdef THREAD__HAS_USLEEP
 int thread_usleep(int seconds, int milliseconds) {
@@ -84,6 +100,6 @@ int thread_usleep(int seconds, int milliseconds) {
 }
 #endif
 
-/** TODO: WINDOWS, MAC **/
+/** TODO: WINDOWS, MAC IMPLEMENTATION **/
 #endif
 #endif
