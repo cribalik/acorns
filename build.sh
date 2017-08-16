@@ -1,0 +1,1 @@
+gcc -ansi -pedantic -Wall -Wextra -g -DDEBUG=1 test/test.c -o test.out -I. -pthread

@@ -212,7 +212,7 @@ static void test_thread(void) {
   }
   
   /* test workqueue */
-  if (0) {
+  {
     struct WorkQueue work_queue = {0};
     for (i = 0; i < NUM_THREADS; ++i) {
       err = thread_create(threads+i, thread_workqueue, &work_queue);

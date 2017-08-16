@@ -1,0 +1,1 @@
+gcc -ansi -pedantic -Wall -Wextra -O3 test/test.c -o test.out -I. -pthread
