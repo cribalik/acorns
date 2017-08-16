@@ -10,7 +10,7 @@ typedef struct Text {
   int length, capacity;
 } Text;
 
-Text text_create();
+Text text_create(void);
 Text text_create_ex(int capacity, char* initial_value);
 
 #define text_get(text) text.data
@@ -79,7 +79,7 @@ int text_append_str(Text* a, const char* b) {
   return a->length - old_len;
 }
 
-Text text_create() {
+Text text_create(void) {
   Text result = {0};
   result.data = &text_null;
   return result;
