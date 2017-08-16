@@ -111,7 +111,10 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c);
 /* TODO: support IPv6 :) */
 
 /* We use getaddrinfo instead of gethostname */
-#define _POSIX_C_SOURCE 201112L
+#if _POSIX_C_SOURCE < 201112L
+#error getaddrinfo not available, increase _POSIX_C_SOURCE version
+#endif
+
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/types.h>

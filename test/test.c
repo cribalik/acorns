@@ -1,7 +1,7 @@
 #if 0
 #define _XOPEN_SOURCE 500
 #else
-#define _POSIX_C_SOURCE 199309L
+#define _POSIX_C_SOURCE 201112L
 #endif
 
 #define DEBUG 1
