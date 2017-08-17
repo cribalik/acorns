@@ -506,8 +506,8 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c) {
 
 
 /** TODO: MAC IMPLEMENTATION **/
-#else
+#elif defined(__APPLE__)
 #error Platform not supported
-#endif /* WHISPER_IMPLEMENTATION */
-
 #endif
+
+#endif /* WHISPER_IMPLEMENTATION */
