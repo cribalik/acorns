@@ -17,6 +17,7 @@ typedef int Whisper_TCPConnection;
 #elif defined(_MSC_VER)
 
 #include <ws2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")
 typedef SOCKET Whisper_TCPServer;
 typedef SOCKET Whisper_TCPConnection;
 
@@ -39,91 +40,80 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c);
 
 /* DOCUMENTATION */
 
-/**
-* int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port);
-*
-* Bind a tcp server to a port
-*/
+/* int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port);
+ *
+ * Bind a tcp server to a port
+ */
 
-/**
-* int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking);
-* 
-* Bind a tcp server to a port
-* If non_blocking is used, then calls like whisper_tcp_server_poll are non-blocking
-*/
+/* int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking);
+ * 
+ * Bind a tcp server to a port
+ * If non_blocking is used, then calls like whisper_tcp_server_poll are non-blocking
+ */
 
-/**
-* int whisper_tcp_server_poll(Whisper_TCPServer r, Whisper_TCPConnection* c);
-* 
-* Listen for a connection
-* Returns a nonzero number on failure
-* If non_blocking is set, then this will fail if there are no waiting connections at the time of polling
-*
-* On success, the connection parameter can now be used
-*/
+/* int whisper_tcp_server_poll(Whisper_TCPServer r, Whisper_TCPConnection* c);
+ * 
+ * Listen for a connection
+ * Returns a nonzero number on failure
+ * If non_blocking is set, then this will fail if there are no waiting connections at the time of polling
+ *
+ * On success, the connection parameter can now be used
+ */
 
-/**
-* int whisper_tcp_server_close(Whisper_TCPServer r);
-* 
-* Close a server, freeing its resources
-*/
+/* int whisper_tcp_server_close(Whisper_TCPServer r);
+ * 
+ * Close a server, freeing its resources
+ */
 
-/**
-* int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsigned short port);
-* 
-* Create a tcp connection to a host and port
-*
-* The format of hostname can be either be a string representing the ip address or the name of the host
-* On unix, getaddrinfo is used to perform the DNS lookup
-*/
+/* int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsigned short port);
+ * 
+ * Create a tcp connection to a host and port
+ *
+ * The format of hostname can be either be a string representing the ip address or the name of the host
+ * On unix, getaddrinfo is used to perform the DNS lookup
+ */
 
-/**
-* int whisper_tcp_connection_write(Whisper_TCPConnection c, const char* data, int size);
-* 
-* Write bytes to connection.
-* Returns the number of bytes written. This value may be less than `size`.
-* On error, returns a negative value.
-* If you want to ensure a number of bytes are written, use the convenience function whisper_tcp_connection_send
-*
-* The buffer is not guaranteed to be flushed by this call.
-* To flush the buffer, use whisper_tcp_connection_flush (or use whisper_tcp_connection_send)
-*/
+/* int whisper_tcp_connection_write(Whisper_TCPConnection c, const char* data, int size);
+ * 
+ * Write bytes to connection.
+ * Returns the number of bytes written. This value may be less than `size`.
+ * On error, returns a negative value.
+ * If you want to ensure a number of bytes are written, use the convenience function whisper_tcp_connection_send
+ *
+ * The buffer is not guaranteed to be flushed by this call.
+ * To flush the buffer, use whisper_tcp_connection_flush (or use whisper_tcp_connection_send)
+ */
 
-/**
-* int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int num_bytes);
-* 
-* Read bytes from connection.
-* Returns the number of bytes read. The number of bytes read may be less than num_bytes.
-* on error, returns a negative value.
-* If you want to ensure a number of bytes are read, use the convenience function whisper_tcp_connection_receive
-*/
+/* int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int num_bytes);
+ * 
+ * Read bytes from connection.
+ * Returns the number of bytes read. The number of bytes read may be less than num_bytes.
+ * on error, returns a negative value.
+ * If you want to ensure a number of bytes are read, use the convenience function whisper_tcp_connection_receive
+ */
 
-/**
-* int whisper_tcp_connection_send(Whisper_TCPConnection c, const char* data, int num_bytes);
-* 
-* Write `num_bytes` bytes to connection and flushes the buffer
-* Returns the number of bytes written. If return value is less than `num_bytes`, an error occured
-*/
+/* int whisper_tcp_connection_send(Whisper_TCPConnection c, const char* data, int num_bytes);
+ * 
+ * Write `num_bytes` bytes to connection and flushes the buffer
+ * Returns the number of bytes written. If return value is less than `num_bytes`, an error occured
+ */
 
-/**
-* int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_bytes);
-* 
-* Read `num_bytes` bytes from connection
-* Returns the number of bytes read. If return value is less than `num_bytes`, an error occured
-*/
+/** int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_bytes);
+  * 
+  * Read `num_bytes` bytes from connection
+  * Returns the number of bytes read. If return value is less than `num_bytes`, an error occured
+  */
 
-/**
-* int whisper_tcp_connection_flush(Whisper_TCPConnection c);
-* 
-* Flush the buffer of the connection, guaranteeing that any buffered bytes written by whisper_tcp_connection_write are sent
-* Returns a nonzero value on error
-*/
+/** int whisper_tcp_connection_flush(Whisper_TCPConnection c);
+  * 
+  * Flush the buffer of the connection, guaranteeing that any buffered bytes written by whisper_tcp_connection_write are sent
+  * Returns a nonzero value on error
+  */
 
-/**
-* int whisper_tcp_connection_close(Whisper_TCPConnection c);
-* 
-* Closes a connection, freeing its resources
-*/
+/* int whisper_tcp_connection_close(Whisper_TCPConnection c);
+ * 
+ * Closes a connection, freeing its resources
+ */
 
 #endif /* WHISPER_H */
 
@@ -207,7 +197,7 @@ int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, in
 
   return 0;
 
-err_socket:
+  err_socket:
   close(socket_fd);
   return err;
 }
@@ -324,8 +314,16 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c) {
   return close(c);
 }
 
+
+
+
+
+
+
 /** WINDOWS IMPLEMENTATION **/
 #elif defined(_MSC_VER)
+
+#define whisper_tcp_connection_flush(c) 0
 
 int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking) {
   SOCKET sock;
@@ -361,7 +359,7 @@ int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, in
 
   return 0;
 
-err_socket:
+  err_socket:
   closesocket(sock);
   return err;
 }
@@ -402,10 +400,11 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsig
 
   /* try all the different hosts */
   for (address_info = address_info_head; address_info; address_info = address_info->ai_next) {
+    char address_buffer[16];
     address = *(struct sockaddr_in*) address_info->ai_addr;
     address.sin_port = htons(port);
 
-    WHISPER_DEBUG(printf("Trying to connect to %s %i ... ", inet_ntoa(address.sin_addr), ntohs(address.sin_port)));
+    WHISPER_DEBUG(printf("Trying to connect to %s %i ... ", InetNtop(AF_INET, &address.sin_addr, address_buffer, sizeof(address_buffer)), ntohs(address.sin_port)));
 
     error = connect(socket_fd, (struct sockaddr*) &address, sizeof(address));
 
@@ -425,7 +424,7 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsig
 
   return 0;
 
-err:
+  err:
   closesocket(socket_fd);
   /* TODO: sensical return codes */
   return 1;
@@ -482,7 +481,7 @@ int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_b
     return -1;
   p = out;
   for (;;) {
-    num_written = read(c, p, out + num_bytes - p);
+    num_written = recv(c, p, out + num_bytes - p, 0);
     if (num_written < 0)
       return -1;
     p += num_written;
@@ -492,13 +491,11 @@ int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_b
   return p - out;
 }
 
-#define whisper_tcp_connection_flush(c)
-
 int whisper_tcp_connection_close(Whisper_TCPConnection c) {
   int err;
   if (c == INVALID_SOCKET)
     return 1;
-  /* whisper_tcp_connection_flush(c); */
+  err = whisper_tcp_connection_flush(c);
   if (err)
     return 1;
   return closesocket(c);
