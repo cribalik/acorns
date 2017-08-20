@@ -322,6 +322,10 @@ static void test_whisper() {
     if (err)
       printf("Failed to free thread\n"), exit(1);
   }
+
+  err = whisper_close();
+  if (err)
+    printf("Failed to close whisper\n"), exit(1);
 }
 
 static void test_whisper_client(void *arg) {
@@ -357,9 +361,10 @@ static void test_whisper_client(void *arg) {
   if (err != MSG_SIZE(msg))
     printf("Client: Failed to send message to localhost:%i (%i)\n", port, err), exit(1);
 
-  err = whisper_close();
+  err = whisper_tcp_connection_close(client);
   if (err)
-    printf("Failed to close whisper\n"), exit(1);
+    printf("Failed to close client connection\n"), exit(1);
+
   printf("Client: Sent '%s' to server\n", MSG_STRING(msg));
 }
 
