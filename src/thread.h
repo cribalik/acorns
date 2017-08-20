@@ -47,6 +47,7 @@ typedef HANDLE Thread_Mutex;
 /** GENERIC HEADER **/
 
 int thread_create(Thread *thread, void (*proc)(void*), void *arg);
+int thread_free(Thread *thread);
 int thread_join(Thread thread);
 int thread_mutex_init(Thread_Mutex *mutex);
 long thread_cas(long *ptr, long expected, long newval);
@@ -82,6 +83,8 @@ int thread_create(Thread *thread, void (*proc)(void*), void *arg) {
   thread->proc = proc;
   return pthread_create(&thread->pthread, 0, thread__pthread_proc_wrapper, thread);
 }
+
+#define thread_free(thread) 0
 
 int thread_join(Thread thread) {
   return pthread_join(thread.pthread, 0);
@@ -133,6 +136,7 @@ int thread_create(Thread *thread, void (*proc)(void*), void *arg) {
   return thread->handle == 0;
 }
 
+#define thread_free(thread) (!CloseHandle(thread.handle))
 #define thread_join(thread) WaitForSingleObject(thread.handle, INFINITE)
 #define thread_mutex_init(mutex_ptr) WaitForSingleObject(*(mutex_ptr), INFINITE)
 #define thread_cas(ptr, expected, new_val) InterlockedCompareExchange((LONG volatile*)(ptr), (new_val), (expected))

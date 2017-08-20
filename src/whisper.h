@@ -1,42 +1,46 @@
+/* TODO: whisper_errno with messages */
 #ifndef WHISPER_H
 #define WHISPER_H
 
-/* TODO: whisper_errno with messages */
-
-#if !defined(__linux__) && !defined(__APPLE__) && !defined(_MSC_VER)
-#error "Unknown platform"
+#ifndef WHISPER_NO_STATIC
+  #define WHISPER__CALL static
+#else
+  #define WHISPER__CALL
 #endif
 
-/** LINUX HEADER **/
 #ifdef __linux__
-
-typedef int Whisper_TCPServer;
-typedef int Whisper_TCPConnection;
-
-/** WINDOWS HEADER **/
+  #define WHISPER__HANDLE int
 #elif defined(_MSC_VER)
-
-#include <ws2tcpip.h>
-#pragma comment(lib, "Ws2_32.lib")
-typedef SOCKET Whisper_TCPServer;
-typedef SOCKET Whisper_TCPConnection;
-
+  #include <ws2tcpip.h>
+  #define WHISPER__HANDLE SOCKET
 #endif
 
 
-int whisper_tcp_server_init(Whisper_TCPServer *server, unsigned short port);
-int whisper_tcp_server_init_ex(Whisper_TCPServer *server, unsigned short port, int non_blocking);
-int whisper_tcp_server_poll(Whisper_TCPServer server, Whisper_TCPConnection *connection);
-int whisper_tcp_server_close(Whisper_TCPServer r);
+typedef WHISPER__HANDLE Whisper_TCPServer;
+typedef WHISPER__HANDLE Whisper_TCPConnection;
 
-int whisper_tcp_client(Whisper_TCPConnection *c_out, const char *hostname, unsigned short port);
+/* init/close */
+WHISPER__CALL int whisper_init();
+WHISPER__CALL int whisper_close();
 
-int whisper_tcp_connection_write(Whisper_TCPConnection c, const char *data, int size);
-int whisper_tcp_connection_read(Whisper_TCPConnection c, char *out, int num_bytes);
-int whisper_tcp_connection_send(Whisper_TCPConnection c, const char *data, int num_bytes);
-int whisper_tcp_connection_receive(Whisper_TCPConnection c, char *out, int num_bytes);
-int whisper_tcp_connection_flush(Whisper_TCPConnection c);
-int whisper_tcp_connection_close(Whisper_TCPConnection c);
+/* server */
+WHISPER__CALL int whisper_tcp_server_init(Whisper_TCPServer *server, unsigned short port);
+WHISPER__CALL int whisper_tcp_server_init_ex(Whisper_TCPServer *server, unsigned short port, int non_blocking);
+WHISPER__CALL int whisper_tcp_server_poll(Whisper_TCPServer server, Whisper_TCPConnection *connection);
+WHISPER__CALL int whisper_tcp_server_close(Whisper_TCPServer r);
+
+/* client */
+WHISPER__CALL int whisper_tcp_client(Whisper_TCPConnection *c_out, const char *hostname, unsigned short port);
+
+/* connection */
+WHISPER__CALL int whisper_tcp_connection_write(Whisper_TCPConnection c, const void *data, int size);
+WHISPER__CALL int whisper_tcp_connection_read(Whisper_TCPConnection c, void *out, int num_bytes);
+WHISPER__CALL int whisper_tcp_connection_send(Whisper_TCPConnection c, const void *data, int num_bytes);
+WHISPER__CALL int whisper_tcp_connection_receive(Whisper_TCPConnection c, void *out, int num_bytes);
+WHISPER__CALL int whisper_tcp_connection_flush(Whisper_TCPConnection c);
+WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c);
+
+WHISPER__CALL int whisper_errno;
 
 /* DOCUMENTATION */
 
@@ -73,7 +77,7 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c);
  * On unix, getaddrinfo is used to perform the DNS lookup
  */
 
-/* int whisper_tcp_connection_write(Whisper_TCPConnection c, const char* data, int size);
+/* int whisper_tcp_connection_write(Whisper_TCPConnection c, const void *data, int size);
  * 
  * Write bytes to connection.
  * Returns the number of bytes written. This value may be less than `size`.
@@ -84,7 +88,7 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c);
  * To flush the buffer, use whisper_tcp_connection_flush (or use whisper_tcp_connection_send)
  */
 
-/* int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int num_bytes);
+/* int whisper_tcp_connection_read(Whisper_TCPConnection c, void *out, int num_bytes);
  * 
  * Read bytes from connection.
  * Returns the number of bytes read. The number of bytes read may be less than num_bytes.
@@ -92,13 +96,13 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c);
  * If you want to ensure a number of bytes are read, use the convenience function whisper_tcp_connection_receive
  */
 
-/* int whisper_tcp_connection_send(Whisper_TCPConnection c, const char* data, int num_bytes);
+/* int whisper_tcp_connection_send(Whisper_TCPConnection c, const void *data, int num_bytes);
  * 
  * Write `num_bytes` bytes to connection and flushes the buffer
  * Returns the number of bytes written. If return value is less than `num_bytes`, an error occured
  */
 
-/** int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_bytes);
+/** int whisper_tcp_connection_receive(Whisper_TCPConnection c, void *out, int num_bytes);
   * 
   * Read `num_bytes` bytes from connection
   * Returns the number of bytes read. If return value is less than `num_bytes`, an error occured
@@ -159,8 +163,10 @@ int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port) {
 #include <stdio.h>
 #endif
 
+#define whisper_init() 0
+#define whisper_close() 0
 
-int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking) {
+WHISPER__CALL int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking) {
   int
     socket_fd,
     err,
@@ -202,19 +208,19 @@ int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, in
   return err;
 }
 
-int whisper_tcp_server_close(Whisper_TCPServer r) {
+WHISPER__CALL int whisper_tcp_server_close(Whisper_TCPServer r) {
   if (r < 0) return r;
   return close(r);
 }
 
-int whisper_tcp_server_poll(Whisper_TCPServer r, Whisper_TCPConnection* c) {
+WHISPER__CALL int whisper_tcp_server_poll(Whisper_TCPServer r, Whisper_TCPConnection* c) {
   if (r < 0) return r;
   *c = accept(r, 0, 0);
   if (*c < 0) return *c;
   return 0;
 }
 
-int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsigned short port) {
+WHISPER__CALL int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsigned short port) {
   int
     socket_fd,
     error;
@@ -238,7 +244,7 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsig
     address = *(struct sockaddr_in*) address_info->ai_addr;
     address.sin_port = htons(port);
 
-    WHISPER_DEBUG(printf("Trying to connect to %s %i ... ", inet_ntoa(address.sin_addr), ntohs(address.sin_port)));
+    WHISPER_DEBUG(printf("Trying to connect to %s:%i ... ", inet_ntoa(address.sin_addr), ntohs(address.sin_port)));
 
     error = connect(socket_fd, (struct sockaddr*) &address, sizeof(address));
 
@@ -260,55 +266,56 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsig
   return error;
 }
 
-int whisper_tcp_connection_write(Whisper_TCPConnection c, const char* data, int size) {
+WHISPER__CALL int whisper_tcp_connection_write(Whisper_TCPConnection c, const void *data, int size) {
   if (c < 0) return c;
   return write(c, data, size);
 }
 
-int whisper_tcp_connection_send(Whisper_TCPConnection c, const char* data, int num_bytes) {
+WHISPER__CALL int whisper_tcp_connection_send(Whisper_TCPConnection c, const void *data, int num_bytes) {
   int num_read;
   const char* p;
-  if (c < 0) return c;
+  if (c < 0)
+    return 0;
   p = data;
   for (;;) {
-    num_read = write(c, p, data + num_bytes - p);
+    num_read = write(c, p, (char*)data + num_bytes - p);
     if (num_read < 0)
       return -1;
     p += num_read;
-    if (p >= data + num_bytes) break;
+    if (p >= (char*)data + num_bytes) break;
   }
-  if (p - data == num_bytes) whisper_tcp_connection_flush(c);
-  return p - data;
+  if (p - (char*)data == num_bytes) whisper_tcp_connection_flush(c);
+  return p - (char*)data;
 }
 
-int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_bytes) {
+WHISPER__CALL int whisper_tcp_connection_receive(Whisper_TCPConnection c, void *out, int num_bytes) {
   int num_written;
   char* p;
-  if (c < 0)
-    return c;
+  if (c < 0 || num_bytes <= 0)
+    return 0;
   p = out;
   for (;;) {
-    num_written = read(c, p, out + num_bytes - p);
+    num_written = read(c, p, (char*)out + num_bytes - p);
     if (num_written < 0)
       return -1;
     p += num_written;
-    if (p >= out + num_bytes)
+    if (p >= (char*)out + num_bytes)
       break;
   }
-  return p - out;
+  return p - (char*)out;
 }
 
-int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int num_bytes) {
+WHISPER__CALL int whisper_tcp_connection_read(Whisper_TCPConnection c, void *out, int num_bytes) {
   if (c < 0) return c;
   return read(c, out, num_bytes);
 }
 
-int whisper_tcp_connection_flush(Whisper_TCPConnection c) {
+WHISPER__CALL int whisper_tcp_connection_flush(Whisper_TCPConnection c) {
   if (c < 0) return c;
   return fsync(c);
 }
 
-int whisper_tcp_connection_close(Whisper_TCPConnection c) {
+WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c) {
   if (c < 0) return c;
   whisper_tcp_connection_flush(c);
   return close(c);
@@ -323,18 +330,25 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c) {
 /** WINDOWS IMPLEMENTATION **/
 #elif defined(_MSC_VER)
 
-#define whisper_tcp_connection_flush(c) 0
+#pragma comment(lib, "Ws2_32.lib")
 
-int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking) {
+WHISPER__CALL int whisper_init() {
+  WSADATA wsadata;
+  return WSAStartup(1, &wsadata);
+}
+
+#define whisper_close() WSACleanup()
+
+#define whisper_tcp_connection_flush(c) 0
+WHISPER__CALL int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking) {
   SOCKET sock;
   int err,
       reuse_address = 1;
   struct sockaddr_in address = {0};
 
   *r_out = sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sock == INVALID_SOCKET) {
-    return 1;
-  }
+  if (sock == INVALID_SOCKET)
+    return WSAGetLastError();
 
   setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&reuse_address, sizeof(reuse_address));
 
@@ -364,7 +378,7 @@ int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, in
   return err;
 }
 
-int whisper_tcp_server_poll(Whisper_TCPServer r, Whisper_TCPConnection* c) {
+WHISPER__CALL int whisper_tcp_server_poll(Whisper_TCPServer r, Whisper_TCPConnection* c) {
   if (r == INVALID_SOCKET)
     return 1;
   *c = accept(r, 0, 0);
@@ -373,15 +387,15 @@ int whisper_tcp_server_poll(Whisper_TCPServer r, Whisper_TCPConnection* c) {
   return 0;
 }
 
-int whisper_tcp_server_close(Whisper_TCPServer r) {
+WHISPER__CALL int whisper_tcp_server_close(Whisper_TCPServer r) {
   if (r == INVALID_SOCKET)
     return 1;
   return closesocket(r);
 }
 
-int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsigned short port) {
+WHISPER__CALL int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsigned short port) {
   SOCKET socket_fd;
-  int error;
+  int error = 1;
   struct addrinfo *address_info_head, *address_info;
   struct addrinfo hints = {0};
   struct sockaddr_in address;
@@ -404,13 +418,13 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsig
     address = *(struct sockaddr_in*) address_info->ai_addr;
     address.sin_port = htons(port);
 
-    WHISPER_DEBUG(printf("Trying to connect to %s %i ... ", InetNtop(AF_INET, &address.sin_addr, address_buffer, sizeof(address_buffer)), ntohs(address.sin_port)));
+    WHISPER_DEBUG(printf("Trying to connect to %s:%i ... ", InetNtop(AF_INET, &address.sin_addr, address_buffer, sizeof(address_buffer)), ntohs(address.sin_port)));
 
     error = connect(socket_fd, (struct sockaddr*) &address, sizeof(address));
 
     WHISPER_DEBUG(
       if (error)
-        perror("Failed");
+        printf("Failed\n");
       else printf("Success\n"););
 
     if (!error)
@@ -419,18 +433,20 @@ int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* hostname, unsig
 
   freeaddrinfo(address_info_head);
 
-  if (!address_info)
+  if (!address_info) {
+    error = 1;
     goto err;
+  }
 
   return 0;
 
   err:
   closesocket(socket_fd);
   /* TODO: sensical return codes */
-  return 1;
+  return error;
 }
 
-int whisper_tcp_connection_write(Whisper_TCPConnection c, const char* data, int size) {
+WHISPER__CALL int whisper_tcp_connection_write(Whisper_TCPConnection c, const void *data, int size) {
   int err;
 
   if (c == INVALID_SOCKET)
@@ -441,7 +457,7 @@ int whisper_tcp_connection_write(Whisper_TCPConnection c, const char* data, int 
   return err;
 }
 
-int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int num_bytes) {
+WHISPER__CALL int whisper_tcp_connection_read(Whisper_TCPConnection c, void *out, int num_bytes) {
   int err;
 
   if (c == INVALID_SOCKET)
@@ -452,46 +468,46 @@ int whisper_tcp_connection_read(Whisper_TCPConnection c, char* out, int num_byte
   return err;
 }
 
-int whisper_tcp_connection_send(Whisper_TCPConnection c, const char* data, int num_bytes) {
+WHISPER__CALL int whisper_tcp_connection_send(Whisper_TCPConnection c, const void *data, int num_bytes) {
   int num_read, err;
   const char* p;
-  if (c == INVALID_SOCKET)
-    return -1;
+  if (c == INVALID_SOCKET || num_bytes <= 0)
+    return 0;
   p = data;
   for (;;) {
-    num_read = send(c, p, data + num_bytes - p, 0);
+    num_read = send(c, p, (char*)data + num_bytes - p, 0);
     if (num_read == SOCKET_ERROR)
-      return -1;
+      return 0;
     p += num_read;
-    if (p >= data + num_bytes)
+    if (p >= (char*)data + num_bytes)
       break;
   }
-  if (p - data == num_bytes) {
+  if (p - (char*)data == num_bytes) {
     err = whisper_tcp_connection_flush(c);
     if (err)
-      return -1;
+      return 0;
   }
-  return p - data;
+  return p - (char*)data;
 }
 
-int whisper_tcp_connection_receive(Whisper_TCPConnection c, char* out, int num_bytes) {
+WHISPER__CALL int whisper_tcp_connection_receive(Whisper_TCPConnection c, void *out, int num_bytes) {
   int num_written;
   char* p;
-  if (c == INVALID_SOCKET)
-    return -1;
+  if (c == INVALID_SOCKET || num_bytes <= 0)
+    return 0;
   p = out;
   for (;;) {
-    num_written = recv(c, p, out + num_bytes - p, 0);
+    num_written = recv(c, p, (char*)out + num_bytes - p, 0);
     if (num_written < 0)
-      return -1;
+      return 0;
     p += num_written;
-    if (p >= out + num_bytes)
+    if (p >= (char*)out + num_bytes)
       break;
   }
-  return p - out;
+  return p - (char*)out;
 }
 
-int whisper_tcp_connection_close(Whisper_TCPConnection c) {
+WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c) {
   int err;
   if (c == INVALID_SOCKET)
     return 1;
@@ -507,7 +523,9 @@ int whisper_tcp_connection_close(Whisper_TCPConnection c) {
 
 /** TODO: MAC IMPLEMENTATION **/
 #elif defined(__APPLE__)
-#error Platform not supported
+  #error Platform not supported
+#else
+  #error "Unknown platform"
 #endif
 
 #endif /* WHISPER_IMPLEMENTATION */

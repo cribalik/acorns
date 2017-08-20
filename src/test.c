@@ -115,20 +115,19 @@ static void test_milk(void) {
   long res1, res2;
   FILE *file;
 
-  res1 = milk_file_get_size_s("test/test.c");
+  res1 = milk_file_get_size_s("src/test.c");
   assert(res1 > 0);
 
-  file = fopen("test/test.c", "rb");
+  file = fopen("src/test.c", "rb");
   assert(file);
 
   res2 = milk_file_get_size_f(file);
   assert(res2 > 0);
 
   assert(res1 == res2);
-  printf("File test/test.c is %li bytes\n", res1);
+  printf("File src/test.c is %li bytes\n", res1);
 }
 
-#define ARRAY_COUNT(a) ((int)(sizeof(a)/sizeof(*a)))
 typedef int Job;
 struct WorkQueue {
   Job *volatile end;
@@ -213,6 +212,8 @@ static void test_thread(void) {
         printf("Fail test\n"), exit(1);
     }
     free(items);
+    for (i = 0; i < NUM_THREADS; ++i)
+      thread_free(threads[i]);
   }
   
   /* test workqueue */
@@ -229,7 +230,130 @@ static void test_thread(void) {
       if (err)
         printf("Error while joining threads\n"), exit(1);
     }
+    for (i = 0; i < NUM_THREADS; ++i) {
+      err = thread_free(threads[i]);
+      if (err)
+        printf("Failed to free thread (%i)\n", err);
+    }
   }
+}
+
+static void test_whisper_server(void *arg);
+static void test_whisper_client(void *arg);
+
+#define MSG_DECLARE(name, num_bytes) struct {int x;} name[sizeof(int) + 1 + (num_bytes)/4]
+#define MSG_STRING(msg) ((char*)((msg)+1))
+#define MSG_LEN(msg) (*(int*)(msg))
+#define MSG_SIZE(msg) (MSG_LEN(msg) + sizeof(int))
+#define SERVER_PORT 7777
+static void test_whisper() {
+  int i, err;
+  unsigned short ports[] = {
+    12345,
+    12346,
+    12347
+  };
+  Thread threads[ARRAY_LEN(ports)];
+  Whisper_TCPServer server;
+
+  err = whisper_init();
+  if (err)
+    printf("Failed to init whisper\n"), exit(1);
+
+  err = whisper_tcp_server_init(&server, SERVER_PORT);
+  if (err)
+    printf("Failed to init tcp server\n");
+  printf("Put up server on port %i\n", SERVER_PORT);
+
+  /* create some clients */
+  for (i = 0; i < ARRAY_LEN(ports); ++i) {
+    err = thread_create(threads+i, test_whisper_client, (void*)ports[i]);
+    if (err)
+      printf("Error while creating thread\n");
+  }
+  printf("Created %i client threads\n", ARRAY_LEN(ports));
+
+  /* read from clients */
+
+  for (i = 0; i < ARRAY_LEN(ports); ++i) {
+    Whisper_TCPConnection conn;
+    MSG_DECLARE(msg, 256);
+    MSG_DECLARE(expected, 256);
+    MSG_DECLARE(received, 256);
+    int id;
+
+    id = rand();
+    MSG_LEN(msg) = sprintf(MSG_STRING(msg), "Well hello to you! Youre id is %i", id) + 1;
+    MSG_LEN(expected) = sprintf(MSG_STRING(expected), "Affirmative, my id is %i", id) + 1;
+
+    err = whisper_tcp_server_poll(server, &conn);
+    if (err)
+      printf("Server: Failure while polling for connection\n");
+
+    err = whisper_tcp_connection_send(conn, &msg, MSG_SIZE(msg));
+    if (err != MSG_SIZE(msg))
+      printf("Server: Failed to send '%s' to client\n", MSG_STRING(msg));
+    printf("Server: Sent '%s' to client\n", MSG_STRING(msg));
+
+    err = whisper_tcp_connection_receive(conn, (char*)&MSG_LEN(received), sizeof(int));
+    if (err != sizeof(int))
+      printf("Server: Failed to read size of message from client\n");
+    if (MSG_LEN(received) != MSG_LEN(expected))
+      printf("Server: Expected message len %i from client, but got %i\n", MSG_LEN(expected), MSG_LEN(received));
+
+    err = whisper_tcp_connection_receive(conn, MSG_STRING(received), MSG_LEN(received));
+    if (err != MSG_LEN(received))
+      printf("Server: Failed to read %i bytes from connection to %i, only read %i bytes\n", MSG_LEN(received), id, err);
+
+    if (strcmp(MSG_STRING(expected), MSG_STRING(received)))
+      printf("Server: Expected message %*s, but got %*s\n", MSG_LEN(expected), MSG_STRING(expected), MSG_LEN(received), MSG_STRING(received));
+
+    whisper_tcp_connection_close(conn);
+  }
+
+  whisper_tcp_server_close(server);
+
+  for (i = 0; i < ARRAY_LEN(threads); ++i) {
+    err = thread_free(threads[i]);
+    if (err)
+      printf("Failed to free thread\n"), exit(1);
+  }
+}
+
+static void test_whisper_client(void *arg) {
+  Whisper_TCPConnection client;
+  int err, i;
+  unsigned short port;
+  MSG_DECLARE(msg, 256);
+  MSG_DECLARE(received, 256);
+  int id;
+
+  port = (unsigned short)arg;
+
+  err = whisper_tcp_client(&client, "localhost", SERVER_PORT);
+  if (err)
+    printf("Client: Failed to connect to localhost:%i (%i)\n", port, err);
+
+  err = whisper_tcp_connection_receive(client, &MSG_LEN(received), sizeof(MSG_LEN(received)));
+  if (err != sizeof(MSG_LEN(received)))
+    printf("Client: Failed to receive msg length from server (%i)\n", err);
+
+  err = whisper_tcp_connection_receive(client, MSG_STRING(received), MSG_LEN(received));
+  if (err != MSG_LEN(received))
+    printf("Client: Failed to get greeting from server (%i)\n", err);
+  printf("Client: Got message '%s' from server\n", MSG_STRING(received));
+
+  err = sscanf(MSG_STRING(received), "Well hello to you! Youre id is %i", &id);
+  if (err != 1)
+    printf("Client: Expected greeting from server, but got '%s'\n", MSG_STRING(received));
+
+  MSG_LEN(msg) = sprintf(MSG_STRING(msg), "Affirmative, my id is %i", id) + 1;
+
+  err = whisper_tcp_connection_send(client, msg, MSG_SIZE(msg));
+  if (err != MSG_SIZE(msg))
+    printf("Client: Failed to send message to localhost:%i (%i)\n", port, err);
+
+  printf("Client: Sent '%s' to server\n", MSG_STRING(msg));
 }
 
 int main(int argc, const char *argv[]) {
@@ -239,5 +363,6 @@ int main(int argc, const char *argv[]) {
   test_arrays();
   test_milk();
   test_thread();
+  test_whisper();
   return 0;
 }
