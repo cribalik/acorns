@@ -70,13 +70,17 @@ static void text_reserve(Text* a) {
   }
 }
 
-int text_append_str(Text* a, const char* b) {
+int text_append_strn(Text *a, const char *b, int n) {
   int old_len = a->length;
-  a->length += strlen(b);
+  a->length += n;
   text_reserve(a);
   memcpy(a->data + old_len, b, a->length - old_len);
   a->data[a->length] = 0;
   return a->length - old_len;
+}
+
+int text_append_str(Text* a, const char* b) {
+  return text_append_strn(a, b, strlen(b));
 }
 
 Text text_create(void) {
@@ -149,7 +153,7 @@ void text_append_long(Text* s, long i) {
     i /= 10;
   }
   if (neg) *b-- = '-';
-  text_append_str(s, b+1);
+  text_append_strn(s, b+1, buf+31-(b+1));
 }
 
 void text_append_double(Text* s, double d) {
