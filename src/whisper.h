@@ -40,8 +40,6 @@ WHISPER__CALL int whisper_tcp_connection_receive(Whisper_TCPConnection c, void *
 WHISPER__CALL int whisper_tcp_connection_flush(Whisper_TCPConnection c);
 WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c);
 
-WHISPER__CALL int whisper_errno;
-
 /* DOCUMENTATION */
 
 /* int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port);
@@ -163,8 +161,13 @@ int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port) {
 #include <stdio.h>
 #endif
 
-#define whisper_init() 0
-#define whisper_close() 0
+WHISPER__CALL int whisper_init() {
+  return 0;
+}
+
+WHISPER__CALL int whisper_close() {
+  return 0;
+}
 
 WHISPER__CALL int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking) {
   int
@@ -337,7 +340,9 @@ WHISPER__CALL int whisper_init() {
   return WSAStartup(1, &wsadata);
 }
 
-#define whisper_close() WSACleanup()
+WHISPER__CALL int whisper_close() {
+  return WSACleanup();
+}
 
 #define whisper_tcp_connection_flush(c) 0
 WHISPER__CALL int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned short port, int non_blocking) {

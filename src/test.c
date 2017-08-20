@@ -11,6 +11,7 @@
 #include "array.h"
 #include "milk.h"
 #define WHISPER_IMPLEMENTATION
+#define WHISPER_NO_STATIC
 #include "whisper.h"
 #define IMAGINE_IMPLEMENTATION
 #include "imagine.h"
@@ -212,8 +213,11 @@ static void test_thread(void) {
         printf("Fail test\n"), exit(1);
     }
     free(items);
-    for (i = 0; i < NUM_THREADS; ++i)
-      thread_free(threads[i]);
+    for (i = 0; i < NUM_THREADS; ++i) {
+      err = thread_free(threads[i]);
+      if (err)
+        printf("Failed to free thread\n"), exit(1);
+    }
   }
   
   /* test workqueue */
@@ -238,14 +242,13 @@ static void test_thread(void) {
   }
 }
 
-static void test_whisper_server(void *arg);
 static void test_whisper_client(void *arg);
 
 struct Message {int msg_len;};
 #define MSG_DECLARE(name, num_bytes) struct Message name[sizeof(int) + (num_bytes+sizeof(struct Message)-1)/sizeof(struct Message)]
 #define MSG_STRING(msg) ((char*)((msg)+1))
 #define MSG_LEN(msg) (*(int*)(msg))
-#define MSG_SIZE(msg) (MSG_LEN(msg) + sizeof(int))
+#define MSG_SIZE(msg) ((int)(MSG_LEN(msg) + sizeof(int)))
 #define SERVER_PORT 7777
 static void test_whisper() {
   int i, err;
@@ -268,7 +271,7 @@ static void test_whisper() {
 
   /* create some clients */
   for (i = 0; i < ARRAY_LEN(ports); ++i) {
-    err = thread_create(threads+i, test_whisper_client, (void*)ports[i]);
+    err = thread_create(threads+i, test_whisper_client, (void*)(long)ports[i]);
     if (err)
       printf("Error while creating thread\n"), exit(1);
   }
@@ -329,7 +332,7 @@ static void test_whisper_client(void *arg) {
   MSG_DECLARE(received, 256);
   int id;
 
-  port = (unsigned short)arg;
+  port = (unsigned short)(long)arg;
 
   err = whisper_tcp_client(&client, "localhost", SERVER_PORT);
   if (err)
@@ -354,6 +357,9 @@ static void test_whisper_client(void *arg) {
   if (err != MSG_SIZE(msg))
     printf("Client: Failed to send message to localhost:%i (%i)\n", port, err), exit(1);
 
+  err = whisper_close();
+  if (err)
+    printf("Failed to close whisper\n"), exit(1);
   printf("Client: Sent '%s' to server\n", MSG_STRING(msg));
 }
 

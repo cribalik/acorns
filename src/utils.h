@@ -4,7 +4,7 @@
 #define STATIC_ASSERT(expr, name) typedef char static_assert_##name[expr?1:-1]
 #define ALIGN(x, val) ALIGN_MASK(x, val-1)
 #define ALIGN_MASK(x, mask) (((x)+(mask)) & ~(mask))
-#define ARRAY_LEN(a) (sizeof(a)/sizeof(*a))
+#define ARRAY_LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
 #ifdef _MSC_VER
 	typedef __int8 i8;
