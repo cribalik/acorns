@@ -310,7 +310,7 @@ static void test_whisper() {
       printf("Server: Failed to read %i bytes from connection to %i, only read %i bytes\n", MSG_LEN(received), id, err), exit(1);
 
     if (strcmp(MSG_STRING(expected), MSG_STRING(received)))
-      printf("Server: Expected message %*s, but got %*s\n", MSG_LEN(expected), MSG_STRING(expected), MSG_LEN(received), MSG_STRING(received)), exit(1);
+      printf("Server: Expected message %.*s, but got %.*s\n", MSG_LEN(expected), MSG_STRING(expected), MSG_LEN(received), MSG_STRING(received)), exit(1);
 
     whisper_tcp_connection_close(conn);
   }
