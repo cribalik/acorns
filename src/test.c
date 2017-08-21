@@ -368,6 +368,14 @@ static void test_whisper_client(void *arg) {
   printf("Client: Sent '%s' to server\n", MSG_STRING(msg));
 }
 
+static void test_utils() {
+  assert(alignof(int) == sizeof(int));
+  assert(alignof(struct {char a; short b;}) == sizeof(short));
+  assert(alignof(struct {char a; int b;}) == sizeof(int));
+  assert(alignof(struct {char a; long b;}) == sizeof(long));
+  assert(alignof(struct {char a; double b;}) == sizeof(double));
+}
+
 int main(int argc, const char *argv[]) {
   (void)argc, (void)argv;
   srand((unsigned int)time(0));
@@ -376,5 +384,6 @@ int main(int argc, const char *argv[]) {
   test_milk();
   test_thread();
   test_whisper();
+  test_utils();
   return 0;
 }

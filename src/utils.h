@@ -1,9 +1,13 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stddef.h>
+
 #define STATIC_ASSERT(expr, name) typedef char static_assert_##name[expr?1:-1]
 #define ALIGN(x, val) ALIGN_MASK(x, val-1)
 #define ALIGN_MASK(x, mask) (((x)+(mask)) & ~(mask))
+#define containerof(ptr, type, member) (((type)*)((char*)ptr - offsetof(type, member)))
+#define alignof(type) offsetof(struct {char a; type b;}, b)
 #define ARRAY_LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
 #ifdef _MSC_VER
