@@ -1,2 +1,2 @@
 # acorns
-Code that will someday grow into an Oak
+Platform-independent libraries in ANSI C - code that will someday grow into an Oak
