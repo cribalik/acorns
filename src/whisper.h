@@ -15,9 +15,9 @@
   #define WHISPER__HANDLE SOCKET
 #endif
 
-
 typedef WHISPER__HANDLE Whisper_TCPServer;
 typedef WHISPER__HANDLE Whisper_TCPConnection;
+WHISPER__CALL int whisper_errno;
 
 /* init/close */
 WHISPER__CALL int whisper_init();
@@ -39,6 +39,26 @@ WHISPER__CALL int whisper_tcp_connection_send(Whisper_TCPConnection c, const voi
 WHISPER__CALL int whisper_tcp_connection_receive(Whisper_TCPConnection c, void *out, int num_bytes);
 WHISPER__CALL int whisper_tcp_connection_flush(Whisper_TCPConnection c);
 WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c);
+WHISPER__CALL int whisper_tcp_wait(Whisper_TCPServer *server, Whisper_TCPConnection *connections, int num_connections, int stride, char *connections_ready_out, int out_stride, char *server_ready_out);
+WHISPER__CALL int whisper_tcp_canwait(Whisper_TCPConnection c);
+
+WHISPER__CALL unsigned long whisper_hton64(unsigned long x);
+WHISPER__CALL unsigned int whisper_hton32(unsigned int x);
+WHISPER__CALL unsigned short whisper_hton16(unsigned short x);
+
+WHISPER__CALL unsigned long whisper_ntoh64(unsigned long x);
+WHISPER__CALL unsigned int whisper_ntoh32(unsigned int x);
+WHISPER__CALL unsigned short whisper_ntoh16(unsigned short x);
+
+enum {
+  WHISPER_EINVAL = -1
+};
+
+typedef char whisper_assert_long_is_64bit[sizeof(long) == 8 ? 1:-1];
+typedef char whisper_assert_int_is_32bit[sizeof(int) == 4 ? 1:-1];
+typedef char whisper_assert_int_is_16bit[sizeof(short) == 2 ? 1:-1];
+typedef char whisper_assert_long_is_8bit[sizeof(char) == 1 ? 1:-1];
+
 
 /* DOCUMENTATION */
 
@@ -113,9 +133,17 @@ WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c);
   */
 
 /* int whisper_tcp_connection_close(Whisper_TCPConnection c);
- * 
- * Closes a connection, freeing its resources
- */
+  * 
+  * Closes a connection, freeing its resources
+  */
+
+/* int whisper_tcp_wait(Whisper_TCPServer *server, Whisper_TCPConnection *connections, int num_connections, int stride, char *connections_ready_out, int out_stride, char *server_ready_out);
+  *
+  * Wait on a server and multiple connections until either the server is ready to accept a connection or the connections are ready to receive data
+  *
+  * connections_ready_out - an array of size num_connections, where 1 indicates that the connection is ready to receive data, 0 otherwise
+  * server_ready_out - will be set to 1 if server is ready to receive connections, 0 otherwise
+  */
 
 #endif /* WHISPER_H */
 
@@ -124,6 +152,8 @@ WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c);
 
 
 /** GENERIC IMPLEMENTATION **/
+
+WHISPER__CALL int whisper_errno;
 
 #if DEBUG
   #define WHISPER_DEBUG(STMT) do {STMT;} while(0)
@@ -135,6 +165,70 @@ int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port) {
   return whisper_tcp_server_init_ex(r_out, port, 0);
 }
 
+WHISPER__CALL unsigned long whisper_hton64(unsigned long x) {
+  unsigned long r;
+  char *p = (char*)&r;
+
+  p[0] = (x >> 56) & 0xFF;
+  p[1] = (x >> 48) & 0xFF;
+  p[2] = (x >> 40) & 0xFF;
+  p[3] = (x >> 32) & 0xFF;
+  p[4] = (x >> 24) & 0xFF;
+  p[5] = (x >> 16) & 0xFF;
+  p[6] = (x >> 8) & 0xFF;
+  p[7] = x & 0xFF;
+  return r;
+}
+
+WHISPER__CALL unsigned int whisper_hton32(unsigned int x) {
+  unsigned int r;
+  char *p = (char*)&r;
+
+  p[0] = (x >> 24) & 0xFF;
+  p[1] = (x >> 16) & 0xFF;
+  p[2] = (x >> 8) & 0xFF;
+  p[3] = x & 0xFF;
+  return r;
+}
+
+
+WHISPER__CALL unsigned short whisper_hton16(unsigned short x) {
+  unsigned short r;
+  char *p = (char*)&r;
+
+  p[0] = (x >> 8) & 0xFF;
+  p[1] = x & 0xFF;
+  return r;
+}
+
+WHISPER__CALL unsigned long whisper_ntoh64(unsigned long x) {
+  char *p = (char*)&x;
+  return
+    (unsigned long)p[0] << 56 |
+    (unsigned long)p[1] << 48 |
+    (unsigned long)p[2] << 40 |
+    (unsigned long)p[3] << 32 |
+    (unsigned long)p[4] << 24 |
+    (unsigned long)p[5] << 16 |
+    (unsigned long)p[6] << 8 |
+    (unsigned long)p[7];
+}
+
+WHISPER__CALL unsigned int whisper_ntoh32(unsigned int x) {
+  char *p = (char*)&x;
+  return
+    (unsigned int)p[0] << 24 |
+    (unsigned int)p[1] << 16 |
+    (unsigned int)p[2] << 8 |
+    (unsigned int)p[3];
+}
+
+WHISPER__CALL unsigned short whisper_ntoh16(unsigned short x) {
+  char *p = (char*)&x;
+  return
+    (unsigned short)p[0] << 8 |
+    (unsigned short)p[1];
+}
 
 
 
@@ -145,15 +239,17 @@ int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port) {
 
 /* We use getaddrinfo instead of gethostname */
 #if _POSIX_C_SOURCE < 201112L
-#error getaddrinfo not available, increase _POSIX_C_SOURCE version
+#error "getaddrinfo not available, increase _POSIX_C_SOURCE version"
 #endif
 
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <alloca.h>
 
 
 /* Some debugging stuff */
@@ -176,7 +272,7 @@ WHISPER__CALL int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned 
     on = 1;
   struct sockaddr_in address = {0};
 
-  socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  *r_out = socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (socket_fd < 0)
     return socket_fd;
   *r_out = socket_fd;
@@ -231,9 +327,9 @@ WHISPER__CALL int whisper_tcp_client(Whisper_TCPConnection* c_out, const char* h
   struct addrinfo hints = {0};
   struct sockaddr_in address;
 
-  socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_fd < 0) return socket_fd;
-  *c_out = socket_fd;
+  *c_out = socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (socket_fd < 0)
+    return socket_fd;
 
   /* resolve hostname */
   hints.ai_family = AF_INET;
@@ -322,6 +418,60 @@ WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c) {
   if (c < 0) return c;
   whisper_tcp_connection_flush(c);
   return close(c);
+}
+
+WHISPER__CALL int whisper_tcp_canwait(Whisper_TCPConnection c) {
+  return c > 0 && c < FD_SETSIZE;
+}
+
+WHISPER__CALL int whisper_tcp_wait(Whisper_TCPServer *server, Whisper_TCPConnection *connections, int num_connections, int stride, char *connections_ready_out, int out_stride, char *server_ready_out) {
+  int i, err;
+  fd_set fdset;
+  int nfds;
+
+  FD_ZERO(&fdset);
+  nfds = 0;
+
+  if (server_ready_out)
+    *server_ready_out = 0;
+  for (i = 0; i < num_connections; ++i)
+    *(char*)((char*)connections_ready_out + i*out_stride) = 0;
+
+  /* add server */
+  if (server) {
+    if (*server > nfds)
+      nfds = *server;
+    if (*server >= FD_SETSIZE)
+      return whisper_errno = WHISPER_EINVAL;
+    FD_SET(*server, &fdset);
+  }
+
+  /* add connections */
+  for (i = 0; i < num_connections; ++i) {
+    Whisper_TCPConnection *c;
+
+    c = (Whisper_TCPConnection*)((char*)connections + i*stride);
+    if (*c > nfds)
+      nfds = *c;
+    if (*c >= FD_SETSIZE)
+      return whisper_errno = WHISPER_EINVAL;
+    FD_SET(*c, &fdset);
+  }
+
+  err = select(nfds+1, &fdset, 0, 0, 0);
+  if (err == -1)
+    return 1;
+
+  if (server_ready_out)
+    *server_ready_out = FD_ISSET((*server), &fdset);
+  if (connections_ready_out)
+    for (i = 0; i < num_connections; ++i) {
+      Whisper_TCPConnection *c = (Whisper_TCPConnection*) ((char*)connections + i*stride);
+      char *out = connections_ready_out + i*out_stride;
+
+      *out = FD_ISSET(*c, &fdset);
+    }
+  return 0;
 }
 
 
