@@ -47,7 +47,7 @@
 /* Preserves ordering */
 #define array_remove_slow(a, i) ((a) && array__n(a) > 0 ? memmove((a)+(i), (a)+(i)+1, sizeof(*(a)) * (array__n(a)-i-1)), --array__n(a) : 0)
 /* Swaps in the last element */
-#define array_remove_fast(a, i) ((a) && array__n(a) > 0 ? (a)[i] = (a)[array__n(a)--],0 : 0)
+#define array_remove_fast(a, i) ((a) && array__n(a) > 0 ? (a)[i] = (a)[--array__n(a)],0 : 0)
 
 /* Internals */
 #define array__c(a) ((int*)(a))[-1]
