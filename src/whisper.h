@@ -167,7 +167,7 @@ int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port) {
 
 WHISPER__CALL unsigned long whisper_hton64(unsigned long x) {
   unsigned long r;
-  char *p = (char*)&r;
+  unsigned char *p = (unsigned char*)&r;
 
   p[0] = (x >> 56) & 0xFF;
   p[1] = (x >> 48) & 0xFF;
@@ -182,7 +182,7 @@ WHISPER__CALL unsigned long whisper_hton64(unsigned long x) {
 
 WHISPER__CALL unsigned int whisper_hton32(unsigned int x) {
   unsigned int r;
-  char *p = (char*)&r;
+  unsigned char *p = (unsigned char*)&r;
 
   p[0] = (x >> 24) & 0xFF;
   p[1] = (x >> 16) & 0xFF;
@@ -194,7 +194,7 @@ WHISPER__CALL unsigned int whisper_hton32(unsigned int x) {
 
 WHISPER__CALL unsigned short whisper_hton16(unsigned short x) {
   unsigned short r;
-  char *p = (char*)&r;
+  unsigned char *p = (unsigned char*)&r;
 
   p[0] = (x >> 8) & 0xFF;
   p[1] = x & 0xFF;
@@ -202,7 +202,7 @@ WHISPER__CALL unsigned short whisper_hton16(unsigned short x) {
 }
 
 WHISPER__CALL unsigned long whisper_ntoh64(unsigned long x) {
-  char *p = (char*)&x;
+  unsigned char *p = (unsigned char*)&x;
   return
     (unsigned long)p[0] << 56 |
     (unsigned long)p[1] << 48 |
@@ -215,7 +215,7 @@ WHISPER__CALL unsigned long whisper_ntoh64(unsigned long x) {
 }
 
 WHISPER__CALL unsigned int whisper_ntoh32(unsigned int x) {
-  char *p = (char*)&x;
+  unsigned char *p = (unsigned char*)&x;
   return
     (unsigned int)p[0] << 24 |
     (unsigned int)p[1] << 16 |
@@ -224,7 +224,7 @@ WHISPER__CALL unsigned int whisper_ntoh32(unsigned int x) {
 }
 
 WHISPER__CALL unsigned short whisper_ntoh16(unsigned short x) {
-  char *p = (char*)&x;
+  unsigned char *p = (unsigned char*)&x;
   return
     (unsigned short)p[0] << 8 |
     (unsigned short)p[1];
