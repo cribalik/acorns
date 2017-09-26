@@ -16,7 +16,6 @@
     {
       "name": "debug",
       "cmd": "./build.sh",
-      /*"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",*/
       "file_regex": "^(^\\S.*\\.\\w+):(\\d+):(\\d+): (.*)$",
       "working_dir": "${project_path}/../"
     }

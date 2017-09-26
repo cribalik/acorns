@@ -5,10 +5,15 @@
 #endif
 
 #define DEBUG 1
+
+#define WORK_QUEUE_IMPLEMENTATION
+#include "work_queue.h"
 #include "utils.h"
 #define TEXT_IMPLEMENTATION
 #include "text.h"
 #include "array.h"
+#define MILK_IMPLEMENTATION
+#define MILK_NO_STATIC
 #include "milk.h"
 #define WHISPER_IMPLEMENTATION
 #define WHISPER_NO_STATIC
@@ -17,6 +22,7 @@
 #include "imagine.h"
 #define THREAD_IMPLEMENTATION
 #include "thread.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
@@ -25,6 +31,8 @@
 
 static void test_strings(void) {
   Text t = text_create_ex(3, "12345");
+
+  printf("Testing string.. ");
   assert(t.length == 5);
 
   text_append_str(&t, "hello");
@@ -50,6 +58,7 @@ static void test_strings(void) {
   text_drop(&t, 12);
   assert(strcmp(t.data, "hello12345hello<987:-654>%") == 0);
   assert(t.length == 26);
+  printf("Success\n");
 }
 
 struct Data {int a,b;};
@@ -62,6 +71,7 @@ struct Data create_data(int a, int b) {
 
 static void test_arrays(void) {
   #define LARGE_VALUE 5107
+  printf("Testing array of doubles.. ");
   {
     double* correct = malloc(LARGE_VALUE * sizeof(*correct));
     double* d = 0;
@@ -85,7 +95,9 @@ static void test_arrays(void) {
     array_free(d);
     free(correct);
   }
+  printf("Success\n");
 
+  printf("Testing array of structs.. ");
   {
     struct Data* correct = malloc(LARGE_VALUE * sizeof(*correct));
     struct Data* d = 0;
@@ -110,11 +122,14 @@ static void test_arrays(void) {
     array_free(d);
     free(correct);
   }
+  printf("Success\n");
 }
 
 static void test_milk(void) {
   long res1, res2;
   FILE *file;
+
+  printf("Testing milk get file size.. ");
 
   res1 = milk_file_get_size_s("src/test.c");
   assert(res1 > 0);
@@ -126,120 +141,182 @@ static void test_milk(void) {
   assert(res2 > 0);
 
   assert(res1 == res2);
-  printf("File src/test.c is %li bytes\n", res1);
+  printf("Success\n");
 }
 
-typedef int Job;
-struct WorkQueue {
-  Job *volatile end;
-  Job *volatile next;
-  Job jobs[4];
-};
 
-#define NUM_ITERS 10000
-#define NUM_ITEMS 4
-static void thread_adding(void *arg) {
-  int volatile *items;
+#define NUM_ITEMS 10000
+#define NUM_ITERS 1000
+static void thread_adding(void *data) {
+  AtomicInt *items = (AtomicInt*)data;
   int i,j;
 
-  items = arg;
-
-  for (i = 0; i < NUM_ITERS; ++i)
-  for (j = 0; j < NUM_ITEMS; ++j) {
-#if 0
-    ++items[j];
-#else
-    thread_add(&items[j], 1);
-#endif
+  for (j = 0; j < NUM_ITERS; ++j) {
+    for (i = 0; i < NUM_ITEMS; ++i) {
+      #if 1
+      atomic_add_int(items+i, 1);
+      #else
+      ++items[i].val;
+      #endif
+    }
   }
-
-  return;
 }
 
-static void thread_workqueue(void *arg) {
-  (void)arg;
-#if 0
-  for (;;) {
-    Job job;
-    Job *j;
-   
-    while (work_queue->next == work_queue->end)
-      thread_usleep(0, 500);
+static void thread_test_spinlock(void *data);
+static void test_workqueue(void);
 
-    j = work_queue->next;
-    job = *j;
-    if (thread_cas(&work_queue->next, j, j+1) != j)
-      continue;
+typedef struct {
+  SpinLock *lock;
+  AtomicInt *value;
+  int id;
+  int num_iters;
+} SpinLockTestData;
 
-    printf("Performed job %i\n", job);
-  }
-#endif
-  return;
+#define NUM_THREADS 16
+
+static void test_atomic_add() {
+  int *items;
+  int i;
+  Thread threads[NUM_THREADS];
+
+  printf("Testing atomic_add_int.. ");
+  fflush(stdout);
+
+  items = malloc(sizeof(*items) * NUM_ITEMS);
+  for (i = 0; i < NUM_ITEMS; ++i)
+    items[i] = 0;
+
+  for (i = 0; i < NUM_THREADS; ++i)
+    if (thread_create(threads+i, thread_adding, items))
+      printf("Error creating thread\n"), exit(1);
+
+  for (i = 0; i < NUM_THREADS; ++i)
+    if (thread_join(threads+i))
+      printf("Error while joining threads\n"), exit(1);
+
+  for (i = 0; i < NUM_ITEMS; ++i)
+    if (items[i] != NUM_THREADS*NUM_ITERS)
+      printf("failed test. Sum should be %i but was %i\n", NUM_THREADS*NUM_ITERS, items[i]), exit(1);
+  free(items);
+
+  for (i = 0; i < NUM_THREADS; ++i)
+    if (thread_free(threads+i))
+      printf("Failed to free thread\n"), exit(1);
+
+  printf("Success\n");
 }
 
+static void test_spinlock() {
+  const int num_iters = 1000;
+  Thread threads[NUM_THREADS];
+  int i;
+  SpinLock lock;
+  AtomicInt value;
+  SpinLockTestData data[NUM_THREADS];
+
+  printf("Testing spinlock.. "), fflush(stdout);
+
+  spinlock_init(&lock);
+  value.val = 0;
+
+  for (i = 0; i < NUM_THREADS; ++i)
+    data[i].lock = &lock,
+    data[i].value = &value,
+    data[i].id = i,
+    data[i].num_iters = num_iters;
+
+  for (i = 0; i < NUM_THREADS; ++i)
+    if (thread_create(threads+i, thread_test_spinlock, &data))
+      printf("Error creating thread\n"), exit(1);
+
+  for (i = 0; i < NUM_THREADS; ++i)
+    if (thread_join(threads+i))
+      printf("Error while joining threads\n"), exit(1);
+
+  if (value.val != NUM_THREADS * num_iters)
+    printf("Failed spinlock test, expected %i but got %i\n", NUM_THREADS*num_iters, value.val), exit(1);
+
+  for (i = 0; i < NUM_THREADS; ++i)
+    if (thread_free(threads+i))
+      printf("Failed to free thread\n"), exit(1);
+
+  printf("Success\n");
+}
 
 static void test_thread(void) {
-#define NUM_THREADS 4
+  test_atomic_add();
+  test_spinlock();
+
+  #if 1
+  test_workqueue();
+  #endif
+}
+
+static void thread_test_spinlock(void *data) {
+  SpinLockTestData *in;
+  int newval, i;
+
+  in = (SpinLockTestData*)data;
+
+  for (i = 0; i < in->num_iters; ++i) {
+    spinlock_lock(in->lock);
+
+    newval = atomic_read_int(in->value) + 1;
+    atomic_write_int(in->value, newval);
+
+    spinlock_unlock(in->lock);
+  }
+}
+
+static void thread_work(void *data) {
+  *(int*)data += 1;
+}
+
+static void thread_worker(void *data) {
+  WorkQueue *queue;
+  Job job;
+
+  queue = (WorkQueue*)data;
+
+  for (;;) {
+    work_queue_pop(queue, &job);
+    job.fun(job.data);
+    work_queue_job_done(queue);
+  }
+}
+
+static void test_workqueue(void) {
+  #define NUM_JOBS 1000
+
+  int i;
   Thread threads[NUM_THREADS];
-  int i,err;
+  int data[NUM_JOBS];
+  WorkQueue queue = {0};
 
-  /* test adding */
-  {
-    int *items;
+  printf("Testing workqueue.. "), fflush(stdout);
 
-    items = malloc(sizeof(*items) * NUM_ITEMS);
-    for (i = 0; i < NUM_ITEMS; ++i)
-      items[i] = 0;
+  for (i = 0; i < NUM_JOBS; ++i)
+    data[i] = 0;
 
-    for (i = 0; i < NUM_THREADS; ++i) {
-      err = thread_create(threads+i, thread_adding, items);
-      if (err)
-        printf("Error creating thread\n"), exit(1);
-    }
+  work_queue_init(&queue, 32);
 
-    printf("Created threads\n");
+  for (i = 0; i < NUM_THREADS; ++i)
+    if (thread_create(threads+i, thread_worker, &queue))
+      printf("Failed to create thread\n"), exit(1);
 
-    for (i = 0; i < NUM_THREADS; ++i) {
-      err = thread_join(threads[i]);
-      if (err)
-        printf("Error while joining threads (%i)\n", err), exit(1);
-    }
+  for (i = 0; i < NUM_JOBS; ++i)
+    while (work_queue_push(&queue, thread_work, data+i));
 
-    printf("Threads joined\n");
+  while (!work_queue_isdone(&queue, NUM_JOBS));
 
-    for (i = 0; i < NUM_ITEMS; ++i) {
-      printf("%i\n", items[i]);
-      if (items[i] != NUM_THREADS*NUM_ITERS)
-        printf("Fail test\n"), exit(1);
-    }
-    free(items);
-    for (i = 0; i < NUM_THREADS; ++i) {
-      err = thread_free(threads[i]);
-      if (err)
-        printf("Failed to free thread\n"), exit(1);
-    }
-  }
-  
-  /* test workqueue */
-  {
-    struct WorkQueue work_queue = {0};
-    for (i = 0; i < NUM_THREADS; ++i) {
-      err = thread_create(threads+i, thread_workqueue, &work_queue);
-      if (err)
-        printf("Error creating thead\n"), exit(1);
-    }
+  for (i = 0; i < NUM_JOBS; ++i)
+    if (data[i] > 1)
+      printf("Failed test, job number %i was executed %i times\n", i, data[i]), exit(1);
+    else if (data[i] < 1)
+      printf("Failed test, job number %i was skipped\n", i), exit(1);
 
-    for (i = 0; i < NUM_THREADS; ++i) {
-      err = thread_join(threads[i]);
-      if (err)
-        printf("Error while joining threads\n"), exit(1);
-    }
-    for (i = 0; i < NUM_THREADS; ++i) {
-      err = thread_free(threads[i]);
-      if (err)
-        printf("Failed to free thread (%i)\n", err);
-    }
-  }
+  printf("Success\n");
+  #undef NUM_JOBS
 }
 
 static void test_whisper_client(void *arg);
@@ -250,7 +327,7 @@ struct Message {int msg_len;};
 #define MSG_LEN(msg) (*(int*)(msg))
 #define MSG_SIZE(msg) ((int)(MSG_LEN(msg) + sizeof(int)))
 #define SERVER_PORT 7777
-static void test_whisper() {
+static void test_whisper(void) {
   int i, err;
   unsigned short ports[] = {
     12345,
@@ -318,7 +395,7 @@ static void test_whisper() {
   whisper_tcp_server_close(server);
 
   for (i = 0; i < ARRAY_LEN(threads); ++i) {
-    err = thread_free(threads[i]);
+    err = thread_free(threads+i);
     if (err)
       printf("Failed to free thread\n"), exit(1);
   }
@@ -368,7 +445,7 @@ static void test_whisper_client(void *arg) {
   printf("Client: Sent '%s' to server\n", MSG_STRING(msg));
 }
 
-static void test_utils() {
+static void test_utils(void) {
   assert(alignof(int) == sizeof(int));
   assert(alignof(struct {char a; short b;}) == sizeof(short));
   assert(alignof(struct {char a; int b;}) == sizeof(int));
