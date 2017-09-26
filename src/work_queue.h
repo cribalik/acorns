@@ -60,7 +60,6 @@ WORK_QUEUE__CALL int work_queue_init_ex(WorkQueue *queue, Job *job_buffer, int j
   return 0;
 }
 
-
 WORK_QUEUE__CALL int work_queue_push(WorkQueue *queue, void (*fun)(void*), void *data) {
   int head, tail, next_head;
 

@@ -4,12 +4,14 @@
 #include <stddef.h>
 
 #define STATIC_ASSERT(expr, name) typedef char static_assert_##name[expr?1:-1]
-#define align(x, val) align_mask(x, val-1)
-#define align_mask(x, mask) (((x)+(mask)) & ~(mask))
+#define align(ptr, n) (void*)(((long)(ptr)+((n)-1)) & ~((n)-1))
 #define containerof(ptr, type, member) (((type)*)((char*)ptr - offsetof(type, member)))
 #define alignof(type) offsetof(struct {char a; type b;}, b)
 #define ARRAY_LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
+#define Kilobyte(n) ((n)*1024L)
+#define Megabyte(n) (Kilobyte(n)*1024L)
+#define Gigabyte(n) (Megabyte(n)*1024L)
 
 static unsigned int random(unsigned int *r) {
   return *r = 1103515245 * *r + 12345;

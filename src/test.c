@@ -6,6 +6,8 @@
 
 #define DEBUG 1
 
+#define MEM_IMPLEMENTATION
+#include "mem.h"
 #define WORK_QUEUE_IMPLEMENTATION
 #include "work_queue.h"
 #include "utils.h"
@@ -143,7 +145,6 @@ static void test_milk(void) {
   assert(res1 == res2);
   printf("Success\n");
 }
-
 
 #define NUM_ITEMS 10000
 #define NUM_ITERS 1000
@@ -337,6 +338,8 @@ static void test_whisper(void) {
   Thread threads[ARRAY_LEN(ports)];
   Whisper_TCPServer server;
 
+  printf("Testing whisper.."), fflush(stdout);
+
   err = whisper_init();
   if (err)
     printf("Failed to init whisper\n"), exit(1);
@@ -403,6 +406,8 @@ static void test_whisper(void) {
   err = whisper_close();
   if (err)
     printf("Failed to close whisper\n"), exit(1);
+
+  printf("Success\n");
 }
 
 static void test_whisper_client(void *arg) {
@@ -446,11 +451,93 @@ static void test_whisper_client(void *arg) {
 }
 
 static void test_utils(void) {
+  printf("Testing utils.. "), fflush(stdout);
+
   assert(alignof(int) == sizeof(int));
-  assert(alignof(struct {char a; short b;}) == sizeof(short));
-  assert(alignof(struct {char a; int b;}) == sizeof(int));
-  assert(alignof(struct {char a; long b;}) == sizeof(long));
+  assert(alignof(struct {char a; i16 b;}) == 2);
+  assert(alignof(struct {char a; i32 b;}) == 4);
+  assert(alignof(struct {char a; i64 b;}) == 8);
   assert(alignof(struct {char a; double b;}) == sizeof(double));
+  assert( align((void*)0, 4) == (void*)0 );
+  assert( align((void*)1, 4) == (void*)4 );
+  assert( align((void*)2, 4) == (void*)4 );
+  assert( align((void*)3, 4) == (void*)4 );
+  assert( align((void*)4, 4) == (void*)4 );
+  assert( align((void*)5, 4) == (void*)8 );
+  assert( align((void*)6, 4) == (void*)8 );
+  assert( align((void*)7, 4) == (void*)8 );
+  assert( align((void*)8, 4) == (void*)8 );
+
+  printf("Success\n");
+}
+
+static void test_stack_allocator() {
+  Stack stack;
+  unsigned char *data;
+  int size;
+
+  printf("Testing stack allocator.. "), fflush(stdout);
+
+  size = 19;
+  data = malloc(size);
+  if (!data)
+    printf("Failed to alloc\n"), exit(1);
+
+  stack_init(&stack, data, size);
+  assert(stack_push(&stack, i8) == data);
+  assert(stack.curr == data+1);
+  assert(stack_push(&stack, i16) == data+2);
+  assert(stack.curr == data+4);
+  assert(stack_push(&stack, i64) == data+8);
+  assert(stack.curr == data+16);
+  assert(!stack_push(&stack, i32) && mem_errno == MEM_FULL);
+  assert(stack.curr == data+16);
+  assert(!stack_push(&stack, i64) && mem_errno == MEM_FULL);
+  assert(stack.curr == data+16);
+  assert(stack_push(&stack, i16) == data+16);
+  assert(stack.curr == data+18);
+  assert(!stack_push(&stack, i16) && mem_errno == MEM_FULL);
+  assert(stack.curr == data+18);
+  assert(stack_push(&stack, i8) == data+18);
+  assert(stack.curr == data+19 && stack.curr == stack.end);
+
+  stack_pop(&stack, data+13);
+  assert(stack.curr == data+13);
+
+  stack_clear(&stack);
+  assert(stack.curr == data && stack.curr == stack.begin);
+
+  printf("Success\n");
+}
+
+static void test_block_allocator() {
+  Block block;
+  typedef struct Data {int a,b,c;} Data;
+  Data *data;
+  int size;
+
+  printf("Testing block allocator.. "), fflush(stdout);
+
+  size = 5;
+  data = malloc(size);
+  if (!data)
+    printf("Failed to alloc\n"), exit(1);
+
+  assert(block_init(&block, data, 5, 3) == MEM_INVALID_ARG && mem_errno == MEM_INVALID_ARG);
+  assert(block_init(&block, (void*)1, 5, sizeof(void*)) == MEM_INVALID_ALIGN && mem_errno == MEM_INVALID_ALIGN);
+
+  assert(block_init(&block, data, size, sizeof(Data)) == 0);
+  assert(block_get(&block) == (void*)(data));
+  assert(block_get(&block) == (void*)(data+1));
+  assert(block_get(&block) == (void*)(data+2));
+  assert(block_get(&block) == (void*)(data+3));
+  assert(block_get(&block) == (void*)(data+4));
+  assert(!block_get(&block) && mem_errno == MEM_FULL);
+  assert(!block_get(&block) && mem_errno == MEM_FULL);
+  block_put(&block, data+1);
+  assert(block_get(&block) == (void*)(data+1));
+
+  printf("Success\n");
 }
 
 int main(int argc, const char *argv[]) {
@@ -462,5 +549,7 @@ int main(int argc, const char *argv[]) {
   test_thread();
   test_whisper();
   test_utils();
+  test_stack_allocator();
+  test_block_allocator();
   return 0;
 }
