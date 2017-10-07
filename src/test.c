@@ -6,6 +6,7 @@
 
 #define DEBUG 1
 
+#include "mem.h"
 #define MEM_IMPLEMENTATION
 #include "mem.h"
 #define WORK_QUEUE_IMPLEMENTATION
@@ -507,6 +508,60 @@ static void test_stack_allocator() {
   stack_clear(&stack);
   assert(stack.curr == data && stack.curr == stack.begin);
 
+
+  stack_init(&stack, data, size);
+  assert(stack_push_val(&stack, i8, (i8)9) == data);
+  assert(stack.curr == data+1);
+  assert(stack_push_val(&stack, i16, (i16)9) == data+2);
+  assert(stack.curr == data+4);
+  assert(stack_push_val(&stack, i64, (i64)9) == data+8);
+  assert(stack.curr == data+16);
+  assert(!stack_push_val(&stack, i32, (i32)9) && mem_errno == MEM_FULL);
+  assert(stack.curr == data+16);
+  assert(!stack_push_val(&stack, i64, (i64)9) && mem_errno == MEM_FULL);
+  assert(stack.curr == data+16);
+  assert(stack_push_val(&stack, i16, (i16)9) == data+16);
+  assert(stack.curr == data+18);
+  assert(!stack_push_val(&stack, i16, (i16)9) && mem_errno == MEM_FULL);
+  assert(stack.curr == data+18);
+  assert(stack_push_val(&stack, i8, (i8)9) == data+18);
+  assert(stack.curr == data+19 && stack.curr == stack.end);
+
+  stack_pop(&stack, data+13);
+  assert(stack.curr == data+13);
+
+  stack_clear(&stack);
+  assert(stack.curr == data && stack.curr == stack.begin);
+
+
+  printf("Success\n");
+}
+
+static void test_lstack_allocator() {
+  LStack lstack;
+  unsigned char *a;
+
+  printf("Testing lstack allocator.. "), fflush(stdout);
+
+  lstack_init(&lstack, 6);
+
+  lstack_push(&lstack, i32);
+  assert(lstack_num_blocks(&lstack) == 1);
+
+  a = lstack_push(&lstack, i16);
+  assert(lstack_num_blocks(&lstack) == 1);
+
+  lstack_push(&lstack, i8);
+  assert(lstack_num_blocks(&lstack) == 2);
+
+  lstack_push(&lstack, i64);
+  assert(lstack_num_blocks(&lstack) == 3);
+
+  lstack_pop(&lstack, a);
+  assert(lstack_num_blocks(&lstack) == 1);
+
+  lstack_clear(&lstack);
+
   printf("Success\n");
 }
 
@@ -540,6 +595,46 @@ static void test_block_allocator() {
   printf("Success\n");
 }
 
+static void test_lblock_allocator() {
+  LBlock lblock;
+  typedef struct Data {int a,b,c;} Data;
+  int i,j;
+  Data *p[6];
+
+  printf("Testing lblock allocator.. "), fflush(stdout);
+
+  lblock_init(&lblock, 3, sizeof(Data));
+
+  p[0] = lblock_get(&lblock);
+  assert(p[0]);
+
+  p[1] = lblock_get(&lblock);
+  assert(p[1]);
+
+  p[2] = lblock_get(&lblock);
+  assert(p[2]);
+
+  p[3] = lblock_get(&lblock);
+  assert(p[3]);
+
+  p[4] = lblock_get(&lblock);
+  assert(p[4]);
+
+  p[5] = lblock_get(&lblock);
+  assert(p[5]);
+
+  for (i = 0; i < 6; ++i) {
+    for (j = 0; j < 6; ++j) {
+      if (j != i)
+        assert(p[i] != p[j]);
+      p[i]->a += 1, p[i]->b +=1, p[i]->c += 1;
+      p[j]->a += 1, p[j]->b +=1, p[j]->c += 1;
+    }
+  }
+
+  printf("Success\n");
+}
+
 int main(int argc, const char *argv[]) {
   (void)argc, (void)argv;
   srand((unsigned int)time(0));
@@ -550,6 +645,8 @@ int main(int argc, const char *argv[]) {
   test_whisper();
   test_utils();
   test_stack_allocator();
+  test_lstack_allocator();
   test_block_allocator();
+  test_lblock_allocator();
   return 0;
 }
