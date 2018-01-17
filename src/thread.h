@@ -91,11 +91,11 @@ static void spinlock_unlock(SpinLock *lock);
  */
 THREAD__CALL int atomic_read_int(AtomicInt *ptr);
 THREAD__CALL void atomic_write_int(AtomicInt *ptr, int val);
-/* @return: 1 if success, 0 otherwise */
-THREAD__CALL int atomic_cas_int(AtomicInt *ptr, int expected, int newval);
 /* @return: old value */
+THREAD__CALL int atomic_cas_int(AtomicInt *ptr, int expected, int newval);
+THREAD__CALL void* atomic_cas_ptr(AtomicPtr *ptr, void *expected, void *new_val);
 THREAD__CALL int atomic_add_int(AtomicInt *ptr, int n);
-THREAD__CALL int atomic_add_ptr(AtomicPtr *ptr, int n);
+THREAD__CALL void* atomic_add_ptr(AtomicPtr *ptr, int n);
 
 /* sleep */
 THREAD__CALL int thread_sleep(int seconds);
@@ -111,7 +111,7 @@ THREAD__CALL int thread_sleep_millis(int milliseconds);
 #if defined(__linux__)
 #define atomic_barrier() __sync_synchronize()
 #elif defined(_MSC_VER)
-#define atomic_barrier() (_ReadWriteBarrier)
+#define atomic_barrier() (_ReadWriteBarrier())
 #endif /* PLATFORM */
 
 
@@ -249,15 +249,19 @@ THREAD__CALL int thread_sleep_millis(int milliseconds) {
 #endif
 
 THREAD__CALL int atomic_cas_int(AtomicInt *ptr, int expected, int new_val) {
-  return __sync_bool_compare_and_swap(&ptr->val, expected, new_val);
+  return __sync_val_compare_and_swap(&ptr->val, expected, new_val);
 }
 
-THREAD__CALL int atomic_cas_ptr(AtomicPtr *ptr, void *expected, void *new_val) {
-  return __sync_bool_compare_and_swap(&ptr->val, expected, new_val);
+THREAD__CALL void* atomic_cas_ptr(AtomicPtr *ptr, void *expected, void *new_val) {
+  return __sync_val_compare_and_swap(&ptr->val, expected, new_val);
 }
 
 THREAD__CALL int atomic_add_int(AtomicInt *ptr, int n) {
   return __sync_fetch_and_add(&ptr->val, n);
+}
+
+THREAD__CALL void* atomic_add_ptr(AtomicPtr *ptr, int n) {
+  return __sync_fetch_and_add((long long*)&ptr->val, n);
 }
 
 
@@ -286,39 +290,43 @@ THREAD__CALL int thread_join(Thread *thread) {
 }
 
 THREAD__CALL int thread_sleep(int seconds) {
-  return Sleep((seconds) * 1000);
+  Sleep((seconds) * 1000);
+  return 0;
 }
 
 THREAD__CALL int thread_sleep_millis(int milliseconds) {
-  return Sleep(milliseconds);
+  Sleep(milliseconds);
+  return 0;
 }
 
 THREAD__CALL int semaphore_init(Semaphore *sem, int val) {
-  return CreateSemaphore(0, val, INFINITE, 0);
+  *sem = CreateSemaphore(0, val, INFINITE, 0);
+  return *sem == NULL;
 }
 
-THREAD__CALL int semaphore_down(Semaphore *sem, int val) {
+THREAD__CALL int semaphore_down(Semaphore *sem) {
   return WaitForSingleObject(*sem, INFINITE);
 }
 
 THREAD__CALL int semaphore_up(Semaphore *sem) {
-  return (int)ReleaseSemaphore(sem, 1, 0);
+  return !ReleaseSemaphore(sem, 1, 0);
 }
 
-THREAD__CALL int atomic_cas_int(Atomic *ptr, int expected, int new_val) {
-  return InterlockedCompareExchange((long*)&ptr->val, (long)new_val, (long)expected) == expected;
+THREAD__CALL int atomic_cas_int(AtomicInt *ptr, int expected, int newval) {
+  return InterlockedCompareExchange((long*)&ptr->val, (long)newval, (long)expected);
 }
 
-THREAD__CALL int atomic_cas_ptr(void **ptr, void *expected, void *newval) {
-  return InterlockedCompareExchangePointer(ptr, new_val, expected) == expected;
+THREAD__CALL void* atomic_cas_ptr(AtomicPtr *ptr, void *expected, void *new_val) {
+  return InterlockedCompareExchangePointer(&ptr->val, new_val, expected);
 }
 
-THREAD__CALL int atomic_add_int(Atomic *ptr, int n) {
-  return __sync_fetch_and_add(&ptr->val, n);
+THREAD__CALL int atomic_add_int(AtomicInt *ptr, int n) {
+  return InterlockedExchangeAdd((LONG volatile*)(&(ptr)->val), (n));
 }
 
-#define atomic_cas_int(ptr, expected, new_val) 
-#define atomic_add(ptr, n) InterlockedExchangeAdd((LONG volatile*)(&(ptr)->val), (n))
+THREAD__CALL void* atomic_add_ptr(AtomicPtr *ptr, int n) {
+  return (void*)InterlockedExchangeAdd64((LONGLONG volatile*)(&(ptr)->val), (n));
+}
 
 
 /** TODO: MAC IMPLEMENTATION **/

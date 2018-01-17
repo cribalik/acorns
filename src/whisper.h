@@ -1,4 +1,26 @@
 /* TODO: whisper_errno with messages */
+
+#ifdef _MSC_VER
+  typedef __int8 whisper_i8;
+  typedef __int16 whisper_i16;
+  typedef __int32 whisper_i32;
+  typedef __int64 whisper_i64;
+  typedef unsigned __int8 whisper_u8;
+  typedef unsigned __int16 whisper_u16;
+  typedef unsigned __int32 whisper_u32;
+  typedef unsigned __int64 whisper_u64;
+#else
+  /* let's hope stdint has us covered */
+  #include <stdint.h>
+  typedef int8_t whisper_i8;
+  typedef int16_t whisper_i16;
+  typedef int32_t whisper_i32;
+  typedef int64_t whisper_i64;
+  typedef uint8_t whisper_u8;
+  typedef uint16_t whisper_u16;
+  typedef uint32_t whisper_u32;
+  typedef uint64_t whisper_u64;
+#endif
 #ifndef WHISPER_H
 #define WHISPER_H
 
@@ -42,22 +64,17 @@ WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c);
 WHISPER__CALL int whisper_tcp_wait(Whisper_TCPServer *server, Whisper_TCPConnection *connections, int num_connections, int stride, char *connections_ready_out, int out_stride, char *server_ready_out);
 WHISPER__CALL int whisper_tcp_canwait(Whisper_TCPConnection c);
 
-WHISPER__CALL unsigned long whisper_hton64(unsigned long x);
-WHISPER__CALL unsigned int whisper_hton32(unsigned int x);
-WHISPER__CALL unsigned short whisper_hton16(unsigned short x);
+WHISPER__CALL whisper_u64 whisper_hton64(whisper_u64 x);
+WHISPER__CALL whisper_u32 whisper_hton32(whisper_u32 x);
+WHISPER__CALL whisper_u16 whisper_hton16(whisper_u16 x);
 
-WHISPER__CALL unsigned long whisper_ntoh64(unsigned long x);
-WHISPER__CALL unsigned int whisper_ntoh32(unsigned int x);
-WHISPER__CALL unsigned short whisper_ntoh16(unsigned short x);
+WHISPER__CALL whisper_u64 whisper_ntoh64(whisper_u64 x);
+WHISPER__CALL whisper_u32 whisper_ntoh32(whisper_u32 x);
+WHISPER__CALL whisper_u16 whisper_ntoh16(whisper_u16 x);
 
 enum {
   WHISPER_EINVAL = -1
 };
-
-typedef char whisper_assert_long_is_64bit[sizeof(long) == 8 ? 1:-1];
-typedef char whisper_assert_int_is_32bit[sizeof(int) == 4 ? 1:-1];
-typedef char whisper_assert_int_is_16bit[sizeof(short) == 2 ? 1:-1];
-typedef char whisper_assert_long_is_8bit[sizeof(char) == 1 ? 1:-1];
 
 
 /* DOCUMENTATION */
@@ -165,8 +182,8 @@ int whisper_tcp_server_init(Whisper_TCPServer* r_out, unsigned short port) {
   return whisper_tcp_server_init_ex(r_out, port, 0);
 }
 
-WHISPER__CALL unsigned long whisper_hton64(unsigned long x) {
-  unsigned long r;
+WHISPER__CALL whisper_u64 whisper_hton64(whisper_u64 x) {
+  whisper_u64 r;
   unsigned char *p = (unsigned char*)&r;
 
   p[0] = (x >> 56) & 0xFF;
@@ -180,8 +197,8 @@ WHISPER__CALL unsigned long whisper_hton64(unsigned long x) {
   return r;
 }
 
-WHISPER__CALL unsigned int whisper_hton32(unsigned int x) {
-  unsigned int r;
+WHISPER__CALL whisper_u32 whisper_hton32(whisper_u32 x) {
+  whisper_u32 r;
   unsigned char *p = (unsigned char*)&r;
 
   p[0] = (x >> 24) & 0xFF;
@@ -201,26 +218,26 @@ WHISPER__CALL unsigned short whisper_hton16(unsigned short x) {
   return r;
 }
 
-WHISPER__CALL unsigned long whisper_ntoh64(unsigned long x) {
+WHISPER__CALL whisper_u64 whisper_ntoh64(whisper_u64 x) {
   unsigned char *p = (unsigned char*)&x;
   return
-    (unsigned long)p[0] << 56 |
-    (unsigned long)p[1] << 48 |
-    (unsigned long)p[2] << 40 |
-    (unsigned long)p[3] << 32 |
-    (unsigned long)p[4] << 24 |
-    (unsigned long)p[5] << 16 |
-    (unsigned long)p[6] << 8 |
-    (unsigned long)p[7];
+    (whisper_u64)p[0] << 56 |
+    (whisper_u64)p[1] << 48 |
+    (whisper_u64)p[2] << 40 |
+    (whisper_u64)p[3] << 32 |
+    (whisper_u64)p[4] << 24 |
+    (whisper_u64)p[5] << 16 |
+    (whisper_u64)p[6] << 8 |
+    (whisper_u64)p[7];
 }
 
-WHISPER__CALL unsigned int whisper_ntoh32(unsigned int x) {
+WHISPER__CALL whisper_u32 whisper_ntoh32(whisper_u32 x) {
   unsigned char *p = (unsigned char*)&x;
   return
-    (unsigned int)p[0] << 24 |
-    (unsigned int)p[1] << 16 |
-    (unsigned int)p[2] << 8 |
-    (unsigned int)p[3];
+    (whisper_u32)p[0] << 24 |
+    (whisper_u32)p[1] << 16 |
+    (whisper_u32)p[2] << 8 |
+    (whisper_u32)p[3];
 }
 
 WHISPER__CALL unsigned short whisper_ntoh16(unsigned short x) {
@@ -682,5 +699,10 @@ WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c) {
 #else
   #error "Unknown platform"
 #endif
+
+typedef char whisper_assert_long_is_64bit[sizeof(whisper_i64) == 8 ? 1:-1];
+typedef char whisper_assert_int_is_32bit[sizeof(whisper_i32) == 4 ? 1:-1];
+typedef char whisper_assert_int_is_16bit[sizeof(whisper_i16) == 2 ? 1:-1];
+typedef char whisper_assert_long_is_8bit[sizeof(whisper_i8) == 1 ? 1:-1];
 
 #endif /* WHISPER_IMPLEMENTATION */

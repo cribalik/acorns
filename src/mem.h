@@ -19,7 +19,12 @@
  *             *Block*                   
  */
 
-#define mem__alignof(type) offsetof(struct {char a; type b;}, b)
+/* alignof */
+#ifdef _MSC_VER
+  #define mem__alignof __alignof
+#else
+  #define mem__alignof(type) offsetof(struct {char a; type b;}, b)
+#endif
 
 #ifdef MEM_NO_STATIC
   #define MEM__CALL

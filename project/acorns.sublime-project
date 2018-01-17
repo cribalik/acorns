@@ -18,6 +18,13 @@
       "cmd": "./build.sh",
       "file_regex": "^(^\\S.*\\.\\w+):(\\d+):(\\d+): (.*)$",
       "working_dir": "${project_path}/../"
+    },
+    {
+      "name": "windows",
+      "cmd": ["build.bat"],
+      "working_dir": "${project_path}/..",
+      "shell": true,
+      "file_regex": "^([^(\n]+)\\(([0-9]+)\\)[ ]*: ()([^\n]+)$"
     }
   ]
 }

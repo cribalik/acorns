@@ -26,6 +26,10 @@
 #define THREAD_IMPLEMENTATION
 #include "thread.h"
 
+#ifdef OS_LINUX
+#include "terminal.h"
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>

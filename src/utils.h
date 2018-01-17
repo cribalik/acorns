@@ -1,12 +1,24 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#ifdef _MSC_VER
+	#define OS_WINDOWS 1
+#elif defined(__linux__)
+	#define OS_LINUX 1
+#else
+	#error "Unimplemented platform"
+#endif
+
 #include <stddef.h>
 
 #define STATIC_ASSERT(expr, name) typedef char static_assert_##name[expr?1:-1]
 #define align(ptr, n) (void*)(((long)(ptr)+((n)-1)) & ~((n)-1))
 #define containerof(ptr, type, member) (((type)*)((char*)ptr - offsetof(type, member)))
-#define alignof(type) offsetof(struct {char a; type b;}, b)
+#ifdef OS_WINDOWS
+	#define alignof __alignof
+#else
+	#define alignof(type) offsetof(struct {char a; type b;}, b)
+#endif
 #define ARRAY_LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
 #define Kilobyte(n) ((n)*1024L)
