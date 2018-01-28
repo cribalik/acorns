@@ -101,8 +101,8 @@ int imagine_bmp_save(const char *filename, const char* rgb, int width, int heigh
   unsigned int biClrImportant;
   /* End BMP header */
 
-  file = fopen(filename, "wb");
-  if (!file) return 1;
+  if (fopen_s(&file, filename, "wb"))
+    return 1;
 
   bytesPerLine = (3 * (width + 1) / 4) * 4;
   bfType = ((unsigned int)'M' << 8) | (unsigned int)'B';

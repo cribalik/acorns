@@ -80,7 +80,7 @@ static void test_arrays(void) {
   #define LARGE_VALUE 5107
   printf("Testing array of doubles.. ");
   {
-    double* correct = malloc(LARGE_VALUE * sizeof(*correct));
+    double* correct = (double*)malloc(LARGE_VALUE * sizeof(*correct));
     double* d = 0;
     int i,j,n=0;
     for (i = 0; i < LARGE_VALUE; ++i) {
@@ -141,8 +141,8 @@ static void test_milk(void) {
   res1 = milk_file_get_size_s("src/test.c");
   assert(res1 > 0);
 
-  file = fopen("src/test.c", "rb");
-  assert(file);
+  int err = fopen_s(&file, "src/test.c", "rb");
+  assert(!err);
 
   res2 = milk_file_get_size_f(file);
   assert(res2 > 0);
@@ -225,11 +225,12 @@ static void test_spinlock() {
   spinlock_init(&lock);
   value.val = 0;
 
-  for (i = 0; i < NUM_THREADS; ++i)
-    data[i].lock = &lock,
-    data[i].value = &value,
-    data[i].id = i,
+  for (i = 0; i < NUM_THREADS; ++i) {
+    data[i].lock = &lock;
+    data[i].value = &value;
+    data[i].id = i;
     data[i].num_iters = num_iters;
+  }
 
   for (i = 0; i < NUM_THREADS; ++i)
     if (thread_create(threads+i, thread_test_spinlock, &data))
@@ -249,15 +250,6 @@ static void test_spinlock() {
   printf("Success\n");
 }
 
-static void test_thread(void) {
-  test_atomic_add();
-  test_spinlock();
-
-  #if 1
-  test_workqueue();
-  #endif
-}
-
 static void thread_test_spinlock(void *data) {
   SpinLockTestData *in;
   int newval, i;
@@ -274,6 +266,15 @@ static void thread_test_spinlock(void *data) {
   }
 }
 
+static void test_thread(void) {
+  test_atomic_add();
+  test_spinlock();
+
+  #if 1
+  test_workqueue();
+  #endif
+}
+
 static void thread_work(void *data) {
   *(int*)data += 1;
 }
@@ -281,11 +282,15 @@ static void thread_work(void *data) {
 static void thread_worker(void *data) {
   WorkQueue *queue;
   Job job;
+  int err;
 
   queue = (WorkQueue*)data;
 
   for (;;) {
-    work_queue_pop(queue, &job);
+    if ((err = work_queue_pop(queue, &job))) {
+      printf("Error while popping from work queue: %i %i\n", err, GetLastError());
+      abort();
+    }
     job.fun(job.data);
     work_queue_job_done(queue);
   }
@@ -295,25 +300,34 @@ static void test_workqueue(void) {
   #define NUM_JOBS 1000
 
   int i;
+  WQ_ERR err;
   Thread threads[NUM_THREADS];
   int data[NUM_JOBS];
   WorkQueue queue = {0};
+  Job jobs[32];
 
   printf("Testing workqueue.. "), fflush(stdout);
 
   for (i = 0; i < NUM_JOBS; ++i)
     data[i] = 0;
 
-  work_queue_init(&queue, 32);
+  if ((err = work_queue_init(&queue, jobs, 32)))
+    printf("Failed to init work queue: %i\n", err), exit(1);
 
   for (i = 0; i < NUM_THREADS; ++i)
     if (thread_create(threads+i, thread_worker, &queue))
       printf("Failed to create thread\n"), exit(1);
 
-  for (i = 0; i < NUM_JOBS; ++i)
-    while (work_queue_push(&queue, thread_work, data+i));
+  for (i = 0; i < NUM_JOBS; ++i) {
+    while ((err = work_queue_push(&queue, thread_work, data+i)) == WORK_QUEUE_FULL);
+    if (err)
+      printf("Failed to push to work queue: %i %i\n", err, GetLastError()), abort();
+  }
 
-  while (!work_queue_isdone(&queue, NUM_JOBS));
+  while (!work_queue_isdone(&queue, NUM_JOBS)) thread_sleep_millis(2);
+
+  if ((err = work_queue_free(&queue)))
+    printf("Failed to free work queue: %i %i\n", err, GetLastError()), abort();
 
   for (i = 0; i < NUM_JOBS; ++i)
     if (data[i] > 1)
@@ -321,17 +335,21 @@ static void test_workqueue(void) {
     else if (data[i] < 1)
       printf("Failed test, job number %i was skipped\n", i), exit(1);
 
+  for (i = 0; i < NUM_THREADS; ++i) {
+    thread_free(threads+i);
+  }
+
   printf("Success\n");
   #undef NUM_JOBS
 }
 
 static void test_whisper_client(void *arg);
 
-struct Message {int msg_len;};
-#define MSG_DECLARE(name, num_bytes) struct Message name[sizeof(int) + (num_bytes+sizeof(struct Message)-1)/sizeof(struct Message)]
+#define MSG_DECLARE(name, num_bytes) int name[sizeof(int) + (num_bytes+sizeof(int)-1)/sizeof(int)]
 #define MSG_STRING(msg) ((char*)((msg)+1))
-#define MSG_LEN(msg) (*(int*)(msg))
+#define MSG_LEN(msg) (*(msg))
 #define MSG_SIZE(msg) ((int)(MSG_LEN(msg) + sizeof(int)))
+#define MSG_MAXSIZE(msg) (sizeof(msg)-sizeof(int))
 #define SERVER_PORT 7777
 static void test_whisper(void) {
   int i, err;
@@ -372,8 +390,8 @@ static void test_whisper(void) {
     int id;
 
     id = rand();
-    MSG_LEN(msg) = sprintf(MSG_STRING(msg), "Well hello to you! Youre id is %i", id) + 1;
-    MSG_LEN(expected) = sprintf(MSG_STRING(expected), "Affirmative, my id is %i", id) + 1;
+    MSG_LEN(msg) = snprintf(MSG_STRING(msg), MSG_MAXSIZE(msg), "Well hello to you! Youre id is %i", id) + 1;
+    MSG_LEN(expected) = snprintf(MSG_STRING(expected), MSG_MAXSIZE(expected), "Affirmative, my id is %i", id) + 1;
 
     err = whisper_tcp_server_poll(server, &conn);
     if (err)
@@ -438,11 +456,11 @@ static void test_whisper_client(void *arg) {
     printf("Client: Failed to get greeting from server (%i)\n", err), exit(1);
   printf("Client: Got message '%s' from server\n", MSG_STRING(received));
 
-  err = sscanf(MSG_STRING(received), "Well hello to you! Youre id is %i", &id);
+  err = sscanf_s(MSG_STRING(received), "Well hello to you! Youre id is %i", &id);
   if (err != 1)
     printf("Client: Expected greeting from server, but got '%s'\n", MSG_STRING(received)), exit(1);
 
-  MSG_LEN(msg) = sprintf(MSG_STRING(msg), "Affirmative, my id is %i", id) + 1;
+  MSG_LEN(msg) = snprintf(MSG_STRING(msg), MSG_MAXSIZE(msg), "Affirmative, my id is %i", id) + 1;
 
   err = whisper_tcp_connection_send(client, msg, MSG_SIZE(msg));
   if (err != MSG_SIZE(msg))

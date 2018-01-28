@@ -188,14 +188,14 @@ MEM__CALL int stack_init(Stack *stack, void *mem, long size) {
   if (!stack || !mem || !size)
     return mem_errno = MEM_INVALID_ARG;
 
-  stack->begin = stack->curr = mem;
+  stack->begin = stack->curr = (unsigned char*)mem;
   stack->end = stack->begin + size;
 
   return 0;
 }
 
 MEM__CALL void* stack_push_ex(Stack *stack, long size, int align) {
-  stack->curr = mem__align(stack->curr, align);
+  stack->curr = (unsigned char*)mem__align(stack->curr, align);
   if (stack->curr + size > stack->end) {
     mem_errno = MEM_FULL;
     return 0;
@@ -209,7 +209,7 @@ MEM__CALL void* stack_push_ex(Stack *stack, long size, int align) {
 MEM__CALL void* stack__push_val(Stack *stack, long size, int align, void *ptr) {
   unsigned char *p;
 
-  p = stack_push_ex(stack, size, align);
+  p = (unsigned char*)stack_push_ex(stack, size, align);
   if (!p)
     return 0;
 
@@ -276,7 +276,7 @@ MEM__CALL void lstack_pop(LStack *ls, void *to) {
     free(tmp);
   }
 
-  s->end = to;
+  s->end = (unsigned char*)to;
 }
 
 MEM__CALL void lstack_clear(LStack *ls) {
@@ -320,13 +320,13 @@ MEM__CALL void* block_get(Block *block) {
     return 0;
   }
 
-  block->next = *(void**)p;
+  block->next = (unsigned char*)*(void**)p;
   return p;
 }
 
 MEM__CALL void block_put(Block *block, void *at) {
   *(void**)at = block->next;
-  block->next = at;
+  block->next = (unsigned char*)at;
 }
 
 MEM__CALL int block_add_block(Block *block, void *mem, long num_items) {

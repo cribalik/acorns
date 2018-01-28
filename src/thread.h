@@ -25,7 +25,7 @@
     void (*proc)(void*);
     void *arg;
   } Thread;
-  typedef sem_t Semaphore;
+  typedef struct {sem_t sem} Semaphore;
 
   #if _XOPEN_SOURCE >= 500 || _POSIX_C_SOURCE >= 199309L
     #define THREAD__HAS_SLEEP_MILLI
@@ -34,6 +34,9 @@
 /** WINDOWS HEADER **/
 #elif defined(_MSC_VER)
 
+  #ifndef WIN32_LEAN_AND_MEAN 
+  #define WIN32_LEAN_AND_MEAN 
+  #endif
   #include <windows.h>
 
   typedef struct {
@@ -41,7 +44,7 @@
     void (*proc)(void*);
     void *arg;
   } Thread;
-  typedef HANDLE Semaphore;
+  typedef struct {HANDLE sem;} Semaphore;
   #define THREAD__HAS_SLEEP_MILLI
 
 /** TODO: MAC HEADER **/
@@ -70,9 +73,10 @@ THREAD__CALL int thread_join(Thread *thread);
 
 /* semaphore */
 
-THREAD__CALL int semaphore_init(Semaphore *sem, int value);
+THREAD__CALL int semaphore_init(Semaphore *sem, int value, int maxval);
 THREAD__CALL int semaphore_up(Semaphore *sem);
 THREAD__CALL int semaphore_down(Semaphore *sem);
+THREAD__CALL int semaphore_free(Semaphore *sem);
 
 /* spinlock */
 
@@ -111,6 +115,7 @@ THREAD__CALL int thread_sleep_millis(int milliseconds);
 #if defined(__linux__)
 #define atomic_barrier() __sync_synchronize()
 #elif defined(_MSC_VER)
+#include <intrin.h>
 #define atomic_barrier() (_ReadWriteBarrier())
 #endif /* PLATFORM */
 
@@ -172,7 +177,7 @@ THREAD__CALL void spinlock_init(SpinLock *lock) {
 
 THREAD__CALL void spinlock_lock(SpinLock *lock) {
   for (;;) {
-    if (atomic_cas_int(&lock->taken, 0, 1))
+    if (atomic_cas_int(&lock->taken, 0, 1) == 0)
       return;
   }
 }
@@ -215,7 +220,7 @@ THREAD__CALL int thread_sleep(int seconds) {
   return sleep(seconds);
 }
 
-THREAD__CALL int semaphore_init(Semaphore *sem, int val) {
+THREAD__CALL int semaphore_init(Semaphore *sem, int val, int) {
   return sem_init(sem, 0, val);
 }
 
@@ -225,6 +230,10 @@ THREAD__CALL int semaphore_up(Semaphore *sem) {
 
 THREAD__CALL int semaphore_down(Semaphore *sem) {
   return sem_wait(sem);
+}
+
+THREAD__CALL int semaphore_free(Semaphore *sem) {
+  return sem_close(sem);
 }
 
 #ifdef THREAD__HAS_SLEEP_MILLI
@@ -286,7 +295,7 @@ THREAD__CALL int thread_free(Thread *thread) {
 }
 
 THREAD__CALL int thread_join(Thread *thread) {
-  return WaitForSingleObject(thread->handle, INFINITE);
+  return WaitForSingleObjectEx(thread->handle, INFINITE, FALSE);
 }
 
 THREAD__CALL int thread_sleep(int seconds) {
@@ -299,17 +308,21 @@ THREAD__CALL int thread_sleep_millis(int milliseconds) {
   return 0;
 }
 
-THREAD__CALL int semaphore_init(Semaphore *sem, int val) {
-  *sem = CreateSemaphore(0, val, INFINITE, 0);
-  return *sem == NULL;
+THREAD__CALL int semaphore_init(Semaphore *sem, int val, int maxval) {
+  sem->sem = CreateSemaphoreEx(0, val, maxval, 0, 0, SEMAPHORE_ALL_ACCESS);
+  return sem->sem == NULL;
 }
 
 THREAD__CALL int semaphore_down(Semaphore *sem) {
-  return WaitForSingleObject(*sem, INFINITE);
+  return WaitForSingleObject(sem->sem, INFINITE) != WAIT_OBJECT_0;
 }
 
 THREAD__CALL int semaphore_up(Semaphore *sem) {
-  return !ReleaseSemaphore(sem, 1, 0);
+  return !ReleaseSemaphore(sem->sem, 1, 0);
+}
+
+THREAD__CALL int semaphore_free(Semaphore *sem) {
+  return !CloseHandle(sem->sem);
 }
 
 THREAD__CALL int atomic_cas_int(AtomicInt *ptr, int expected, int newval) {

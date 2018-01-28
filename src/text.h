@@ -61,12 +61,12 @@ static char text_null = '\0';
 
 static void text_reserve(Text* a) {
   if (!TEXT_IS_ALLOCATED(*a)) {
-    a->data = TEXT_REALLOC(0, a->length+1);
+    a->data = (char*)TEXT_REALLOC(0, a->length+1);
     a->capacity = a->length+1;
   }
   else if (a->length >= a->capacity) {
     while (a->capacity <= a->length) a->capacity *= 2;
-    a->data = TEXT_REALLOC(a->data, a->capacity);
+    a->data = (char*)TEXT_REALLOC(a->data, a->capacity);
   }
 }
 
@@ -95,7 +95,7 @@ Text text_create_ex(int capacity, char* initial_value) {
 
   result.capacity = capacity;
   if (capacity) {
-    result.data = TEXT_REALLOC(0, capacity);
+    result.data = (char*)TEXT_REALLOC(0, capacity);
   } else {
     result.data = &text_null;
   }

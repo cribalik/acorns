@@ -3,6 +3,16 @@
 
 #include <stdio.h>
 
+#ifndef OS_DEFINED
+	#ifdef _MSC_VER
+		#define OS_WINDOWS 1
+	#elif defined(__linux__)
+		#define OS_LINUX 1
+	#else
+		#error "Unimplemented platform"
+	#endif
+#endif /*OS_DEFINED*/
+
 #ifndef MILK_NO_STATIC
   #define MILK__CALL static
 #else
@@ -22,12 +32,18 @@ MILK__CALL int milk_file_get_contents(const char *filename, unsigned char **data
 	long size, num_read;
 	unsigned char *data;
 
+	#ifdef OS_WINDOWS
+	if (fopen_s(&f, filename, "rb"))
+		f = 0;
+	#else
 	f = fopen(filename, "rb");
+	#endif /*OS*/
+
 	if (!f)
 		return -1;
 
 	size = milk_file_get_size_f(f);
-	data = malloc(*size_out);
+	data = (unsigned char*)malloc(*size_out);
 	num_read = fread(data, 1, size, f);
 	if (num_read != size)
 		goto err;
@@ -58,7 +74,13 @@ MILK__CALL long milk_file_get_size_s(const char *filename) {
 	long result;
 	FILE *file;
 
+#ifdef OS_WINDOWS
+	if (fopen_s(&file, filename, "rb"))
+		file = 0;
+#else
 	file = fopen(filename, "rb");
+#endif /*OS*/
+
 	if (!file) return -1;
 
 	err = fseek(file, 0, SEEK_END);

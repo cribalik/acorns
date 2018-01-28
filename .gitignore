@@ -34,3 +34,8 @@
 
 # Sublime files
 *.sublime-workspace
+
+*.ilk
+*.pdb
+*.idb
+.vs

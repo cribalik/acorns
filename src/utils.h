@@ -1,13 +1,15 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#ifdef _MSC_VER
-	#define OS_WINDOWS 1
-#elif defined(__linux__)
-	#define OS_LINUX 1
-#else
-	#error "Unimplemented platform"
-#endif
+#ifndef OS_DEFINED
+	#ifdef _MSC_VER
+		#define OS_WINDOWS 1
+	#elif defined(__linux__)
+		#define OS_LINUX 1
+	#else
+		#error "Unimplemented platform"
+	#endif
+#endif /*OS_DEFINED*/
 
 #include <stddef.h>
 
@@ -29,7 +31,7 @@ static unsigned int random(unsigned int *r) {
   return *r = 1103515245 * *r + 12345;
 }
 
-#ifdef _MSC_VER
+#ifdef OS_WINDOWS
 	typedef __int8 i8;
 	typedef __int16 i16;
 	typedef __int32 i32;

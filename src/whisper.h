@@ -1,28 +1,18 @@
+#ifndef WHISPER_H
+#define WHISPER_H
 /* TODO: whisper_errno with messages */
 
 #ifdef _MSC_VER
-  typedef __int8 whisper_i8;
-  typedef __int16 whisper_i16;
-  typedef __int32 whisper_i32;
-  typedef __int64 whisper_i64;
-  typedef unsigned __int8 whisper_u8;
   typedef unsigned __int16 whisper_u16;
   typedef unsigned __int32 whisper_u32;
   typedef unsigned __int64 whisper_u64;
 #else
   /* let's hope stdint has us covered */
   #include <stdint.h>
-  typedef int8_t whisper_i8;
-  typedef int16_t whisper_i16;
-  typedef int32_t whisper_i32;
-  typedef int64_t whisper_i64;
-  typedef uint8_t whisper_u8;
   typedef uint16_t whisper_u16;
   typedef uint32_t whisper_u32;
   typedef uint64_t whisper_u64;
 #endif
-#ifndef WHISPER_H
-#define WHISPER_H
 
 #ifndef WHISPER_NO_STATIC
   #define WHISPER__CALL static
@@ -33,7 +23,10 @@
 #ifdef __linux__
   #define WHISPER__HANDLE int
 #elif defined(_MSC_VER)
-  #include <ws2tcpip.h>
+  #include <Ws2tcpip.h>
+  // #include <winsock2.h>
+  // #include <ws2tcpip.h>
+  // #include <windows.h>
   #define WHISPER__HANDLE SOCKET
 #endif
 
@@ -170,9 +163,7 @@ enum {
 
 /** GENERIC IMPLEMENTATION **/
 
-WHISPER__CALL int whisper_errno;
-
-#if DEBUG
+#ifdef DEBUG
   #define WHISPER_DEBUG(STMT) do {STMT;} while(0)
 #else
   #define WHISPER_DEBUG(STMT)
@@ -525,7 +516,8 @@ WHISPER__CALL int whisper_tcp_server_init_ex(Whisper_TCPServer* r_out, unsigned 
   setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&reuse_address, sizeof(reuse_address));
 
   if (non_blocking) {
-    err = ioctlsocket(sock, FIONBIO, &non_blocking);
+    u_long non_blocking_ = non_blocking;
+    err = ioctlsocket(sock, FIONBIO, &non_blocking_);
     if (err)
       goto err_socket;
   }
@@ -623,7 +615,7 @@ WHISPER__CALL int whisper_tcp_connection_write(Whisper_TCPConnection c, const vo
 
   if (c == INVALID_SOCKET)
     return -1;
-  err = send(c, data, size, 0);
+  err = send(c, (const char *)data, size, 0);
   if (err == SOCKET_ERROR)
     return -1;
   return err;
@@ -634,7 +626,7 @@ WHISPER__CALL int whisper_tcp_connection_read(Whisper_TCPConnection c, void *out
 
   if (c == INVALID_SOCKET)
     return -1;
-  err = recv(c, out, num_bytes, 0);
+  err = recv(c, (char*)out, num_bytes, 0);
   if (err == SOCKET_ERROR)
     return -1;
   return err;
@@ -645,7 +637,7 @@ WHISPER__CALL int whisper_tcp_connection_send(Whisper_TCPConnection c, const voi
   const char* p;
   if (c == INVALID_SOCKET || num_bytes <= 0)
     return 0;
-  p = data;
+  p = (const char *)data;
   for (;;) {
     num_read = send(c, p, (char*)data + num_bytes - p, 0);
     if (num_read == SOCKET_ERROR)
@@ -667,7 +659,7 @@ WHISPER__CALL int whisper_tcp_connection_receive(Whisper_TCPConnection c, void *
   char* p;
   if (c == INVALID_SOCKET || num_bytes <= 0)
     return 0;
-  p = out;
+  p = (char *)out;
   for (;;) {
     num_written = recv(c, p, (char*)out + num_bytes - p, 0);
     if (num_written < 0)
@@ -700,9 +692,5 @@ WHISPER__CALL int whisper_tcp_connection_close(Whisper_TCPConnection c) {
   #error "Unknown platform"
 #endif
 
-typedef char whisper_assert_long_is_64bit[sizeof(whisper_i64) == 8 ? 1:-1];
-typedef char whisper_assert_int_is_32bit[sizeof(whisper_i32) == 4 ? 1:-1];
-typedef char whisper_assert_int_is_16bit[sizeof(whisper_i16) == 2 ? 1:-1];
-typedef char whisper_assert_long_is_8bit[sizeof(whisper_i8) == 1 ? 1:-1];
 
 #endif /* WHISPER_IMPLEMENTATION */
